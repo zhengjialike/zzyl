@@ -1,0 +1,48 @@
+package com.soft.controller;
+
+import com.soft.dto.NursingItemDto;
+import com.soft.pojo.NursingItem;
+import com.soft.service.NursingItemService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+public class NursingItemController {
+
+    @Autowired
+    private NursingItemService nursingItemService;
+
+    /**
+     * 添加护理项目
+     * @param nursingItem 前端提交的护理项目 JSON 数据
+     * @return 操作结果（code, msg）
+     */
+    @RequestMapping("/saveNursingItem")
+    public Map<String, Object> saveNursingItem(@RequestBody NursingItem nursingItem) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            nursingItemService.save(nursingItem);
+            result.put("code", 200);
+            result.put("msg", "添加护理项目成功......");
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "添加护理项目失败......");
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    /**
+     * 护理项目分页条件查询
+     * 注意：路径必须与前端请求路径完全一致
+     */
+    @PostMapping("/queryNursingItemList")
+    public Map<String, Object> nursingItemPageList(@RequestBody NursingItemDto dto) {
+        return nursingItemService.queryNursingItemList(dto);
+    }
+}
