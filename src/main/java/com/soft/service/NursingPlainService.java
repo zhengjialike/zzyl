@@ -17,8 +17,14 @@ public interface NursingPlainService extends IService<NursingPlain> {
     /*实现护理计划的新增*/
     public Map<String,Object>
     saveNursingPlainService(NursingPlainDto nursingPlainDto);
+    /*实现护理计划的更新*/
+    public Map<String,Object>
+    updateNursingPlainService(NursingPlainDto nursingPlainDto);
 
     /*实现护理计划分页查询*/
     public Map<String,Object>
     loadNursingListPageService(NursingPlainPageDto dto);
+
+    /*根据护理计划id，通过该计划下所有护理项总费用*/
+    public Double totalPlainItemPayService(Integer id);
 }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.NursingLevelMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.NursingLevel">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="levelname" column="levelname" jdbcType="VARCHAR"/>
+            <result property="islock" column="islock" jdbcType="VARCHAR"/>
+            <result property="createuser" column="createuser" jdbcType="VARCHAR"/>
+            <result property="description" column="description" jdbcType="VARCHAR"/>
+            <result property="plainid" column="plainid" jdbcType="INTEGER"/>
+            <result property="money" column="money" jdbcType="DECIMAL"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,levelname,islock,
+        createuser,description,plainid,
+        money
+    </sql>
+    <!--定义sql-->
+    <select id="queryNursingListMapper"
+            resultType="com.soft.pojo.NursingLevel"
+            parameterType="com.soft.dto.NursingLevelDto">
+
+        select t_nursing_level.*,t_nursing_plain.plainname
+        from t_nursing_plain
+        inner join t_nursing_level
+        on t_nursing_plain.id=t_nursing_level.plainid
+        <where>
+            <if test="levelname!=null and levelname!=''">
+                and levelname=#{levelname}
+            </if>
+            <if test="islock!=null and islock!=''">
+                and islock=#{islock}
+            </if>
+        </where>
+
+    </select>
+</mapper>

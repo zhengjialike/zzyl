@@ -78,6 +78,40 @@ public class NursingPlainServiceImpl extends ServiceImpl<NursingPlainMapper, Nur
     }
 
     @Override
+    public Map<String, Object> updateNursingPlainService(NursingPlainDto nursingPlainDto) {
+        Map<String, Object> result=new HashMap<>();
+        result.put("code",400);
+        result.put("msg","更新护理计划失败......");
+        //1 保存护理计划信息
+        NursingPlain nursingPlain=new NursingPlain();
+        nursingPlain.setId(nursingPlainDto.getId());
+        nursingPlain.setPlainname(nursingPlainDto.getPlainname());
+        nursingPlain.setCreatetime(new Date());
+        nursingPlain.setCreateuser("马云");
+        nursingPlain.setIslock("启动");
+        nursingPlainMapper.updateById(nursingPlain);
+
+        //获得当前的护理计划下的所有护理项
+        List<PlainItemDto> plainItemList = nursingPlainDto.getPlainItemList();
+        plainItemList.forEach(item->{
+            //创建中间表对应的实体类对象
+            PlainItem plainItem=new PlainItem();
+            plainItem.setPlainId(nursingPlain.getId());
+            plainItem.setItemId(item.getItemid());
+            plainItem.setHlsj(item.getHlsj());
+            plainItem.setHlzq(item.getHlzq());
+            plainItem.setHlpc(item.getHlpc());
+            plainItem.setItemname(item.getHlmc());
+            //2 保存护理计划和护理项之间的关系
+            plainItemMapper.insert(plainItem);
+
+        });
+        result.put("code",200);
+        result.put("msg","更新护理计划成功......");
+        return result;
+    }
+
+    @Override
     public Map<String, Object> loadNursingListPageService(
             NursingPlainPageDto dto) {
         Map<String, Object> result=new HashMap<>();
@@ -106,6 +140,13 @@ public class NursingPlainServiceImpl extends ServiceImpl<NursingPlainMapper, Nur
         result.put("nursingPlains",nursingPlains);
         result.put("total",page.getTotal());
         return result;
+    }
+
+    @Override
+    public Double totalPlainItemPayService(Integer id) {
+
+        return nursingPlainMapper.totalPlainItemPayMapper(id);
+
     }
 }
 

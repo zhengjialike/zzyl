@@ -5,15 +5,27 @@
 <mapper namespace="com.soft.mapper.NursingPlainMapper">
 
     <resultMap id="BaseResultMap" type="com.soft.pojo.NursingPlain">
-            <id property="id" column="id" jdbcType="INTEGER"/>
-            <result property="plainname" column="plainname" jdbcType="VARCHAR"/>
-            <result property="createtime" column="createtime" jdbcType="TIMESTAMP"/>
-            <result property="createuser" column="createuser" jdbcType="VARCHAR"/>
-            <result property="islock" column="islock" jdbcType="VARCHAR"/>
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="plainname" column="plainname" jdbcType="VARCHAR"/>
+        <result property="createtime" column="createtime" jdbcType="TIMESTAMP"/>
+        <result property="createuser" column="createuser" jdbcType="VARCHAR"/>
+        <result property="islock" column="islock" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,plainname,createtime,
         createuser,islock
     </sql>
+
+    <!--定义sql-->
+    <select id="totalPlainItemPayMapper" resultType="java.lang.Double"
+            parameterType="java.lang.Integer">
+        select
+        sum(t_nursimg_item.price*t_plain_item.hlpc)
+        from t_nursimg_item
+        inner join t_plain_item
+        on t_nursimg_item.id=t_plain_item.item_id
+        where t_plain_item.plain_id=#{plainid}
+
+    </select>
 </mapper>
