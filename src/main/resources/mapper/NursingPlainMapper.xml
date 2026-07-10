@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.NursingPlainMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.NursingPlain">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="plainname" column="plainname" jdbcType="VARCHAR"/>
+            <result property="createtime" column="createtime" jdbcType="TIMESTAMP"/>
+            <result property="createuser" column="createuser" jdbcType="VARCHAR"/>
+            <result property="islock" column="islock" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,plainname,createtime,
+        createuser,islock
+    </sql>
+</mapper>

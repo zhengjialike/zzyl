@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.PlainItemMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.PlainItem">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="itemId" column="item_id" jdbcType="INTEGER"/>
+            <result property="plainId" column="plain_id" jdbcType="INTEGER"/>
+            <result property="itemname" column="itemname" jdbcType="VARCHAR"/>
+            <result property="hlsj" column="hlsj" jdbcType="VARCHAR"/>
+            <result property="hlzq" column="hlzq" jdbcType="VARCHAR"/>
+            <result property="hlpc" column="hlpc" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,item_id,plain_id,
+        itemname,hlsj,hlzq,
+        hlpc
+    </sql>
+</mapper>
