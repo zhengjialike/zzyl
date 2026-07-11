@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.CustomerMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.Customer">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="openid" column="openid" jdbcType="VARCHAR"/>
+            <result property="unionid" column="unionid" jdbcType="VARCHAR"/>
+            <result property="nickname" column="nickname" jdbcType="VARCHAR"/>
+            <result property="avatarUrl" column="avatar_url" jdbcType="VARCHAR"/>
+            <result property="phone" column="phone" jdbcType="VARCHAR"/>
+            <result property="realName" column="real_name" jdbcType="VARCHAR"/>
+            <result property="status" column="status" jdbcType="TINYINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,openid,unionid,
+        nickname,avatar_url,phone,
+        real_name,status,create_time,
+        update_time
+    </sql>
+
+    <!-- 查询客户绑定的所有老人姓名 -->
+    <select id="getBoundElderlyNames" resultType="string">
+        SELECT e.real_name
+        FROM t_family_binding fb
+        INNER JOIN t_elderly e ON fb.elderly_id = e.id
+        WHERE fb.customer_id = #{customerId}
+    </select>
+
+</mapper>
