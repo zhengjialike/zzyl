@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.AlertRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.AlertRecord">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="deviceId" column="device_id" jdbcType="VARCHAR"/>
+            <result property="ruleId" column="rule_id" jdbcType="INTEGER"/>
+            <result property="dataValue" column="data_value" jdbcType="VARCHAR"/>
+            <!-- Deleted:<result property="locationType" column="location_type" jdbcType="TINYINT"/>-->
+            <!-- Deleted:<result property="locationId" column="location_id" jdbcType="INTEGER"/>-->
+            <result property="alertTime" column="alert_time" jdbcType="TIMESTAMP"/>
+            <result property="handleStatus" column="handle_status" jdbcType="TINYINT"/>
+            <result property="handleResult" column="handle_result" jdbcType="VARCHAR"/>
+            <result property="handler" column="handler" jdbcType="VARCHAR"/>
+            <result property="handleTime" column="handle_time" jdbcType="TIMESTAMP"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,device_id,rule_id,
+        data_value,
+        alert_time,handle_status,handle_result,
+        handler,handle_time,create_time,
+        update_time
+    </sql>
+</mapper>

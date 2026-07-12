@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.AlertRuleMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.AlertRule">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="ruleName" column="rule_name" jdbcType="VARCHAR"/>
+            <result property="productId" column="product_id" jdbcType="INTEGER"/>
+            <result property="functionName" column="function_name" jdbcType="VARCHAR"/>
+            <result property="deviceId" column="device_id" jdbcType="VARCHAR"/>
+            <result property="operator" column="operator" jdbcType="VARCHAR"/>
+            <result property="threshold" column="threshold" jdbcType="DECIMAL"/>
+            <result property="durationPeriod" column="duration_period" jdbcType="INTEGER"/>
+            <result property="dataAggregationPeriod" column="data_aggregation_period" jdbcType="INTEGER"/>
+            <result property="effectiveStart" column="effective_start" jdbcType="TIME"/>
+            <result property="effectiveEnd" column="effective_end" jdbcType="TIME"/>
+            <result property="silentMinutes" column="silent_minutes" jdbcType="INTEGER"/>
+            <result property="status" column="status" jdbcType="TINYINT"/>
+            <result property="createUser" column="create_user" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,rule_name,product_id,
+        function_name,device_id,operator,threshold,
+        duration_period,data_aggregation_period,effective_start,effective_end,
+        silent_minutes,status,create_user,
+        create_time,update_time
+    </sql>
+</mapper>

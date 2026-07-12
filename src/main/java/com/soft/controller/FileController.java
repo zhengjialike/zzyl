@@ -3,6 +3,7 @@ package com.soft.controller;
 import com.soft.utils.AliyunOssUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,7 +19,7 @@ public class FileController {
      * 处理文件上传请求，返回上传后的OSS访问路径
      */
     @RequestMapping("/upload")
-    public String fileUpload(MultipartFile mf) {
+    public String fileUpload(@RequestParam("mf") MultipartFile mf) {
         try {
             // 获取原始文件名
             String oldName = mf.getOriginalFilename();
