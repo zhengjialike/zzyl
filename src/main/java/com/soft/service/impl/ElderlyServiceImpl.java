@@ -1,6 +1,7 @@
 package com.soft.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.soft.mapper.ElderlyMapper;
 import com.soft.pojo.Elderly;
@@ -20,6 +21,14 @@ public class ElderlyServiceImpl extends ServiceImpl<ElderlyMapper, Elderly>
         QueryWrapper<Elderly> wrapper = new QueryWrapper<>();
         wrapper.eq("id_card", idCard);
         return elderlyMapper.selectOne(wrapper);
+    }
+
+    @Override
+    public void updateStatusToCheckedIn(Integer elderlyId) {
+        UpdateWrapper<Elderly> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", elderlyId);
+        updateWrapper.set("status", 1); // 1-已入住
+        this.update(updateWrapper);
     }
 
 }

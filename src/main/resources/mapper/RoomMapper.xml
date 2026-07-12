@@ -20,4 +20,10 @@
         room_number,sort,status,
         create_time,update_time
     </sql>
+
+    <!-- 统计指定房间的床位数量 -->
+    <select id="countBedsByRoomId" resultType="integer">
+        SELECT COUNT(*) FROM t_bed WHERE room_id = #{roomId}
+    </select>
+
 </mapper>

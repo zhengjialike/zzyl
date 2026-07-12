@@ -27,8 +27,7 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room>
 
     @Override
     public boolean hasBeds(Integer roomId) {
-        // TODO: 待床位管理完成后实现
-        // return roomMapper.countBedsByRoomId(roomId) > 0;
-        return false;
+        Integer count = roomMapper.countBedsByRoomId(roomId);
+        return count != null && count > 0;
     }
 }

@@ -26,9 +26,8 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor>
 
     @Override
     public boolean hasRooms(Integer floorId) {
-        // TODO: 待房间管理完成后实现
-        // return floorMapper.countRoomsByFloorId(floorId) > 0;
-        return false;
+        Integer count = floorMapper.countRoomsByFloorId(floorId);
+        return count != null && count > 0;
     }
 }
 

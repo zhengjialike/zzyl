@@ -81,13 +81,8 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer>
      * 逻辑：客户手机号 = 乙方/丙方手机号（在合同管理中）
      */
     private String checkIfSigned(String phone) {
-        // TODO: 待合同管理功能完成后实现
-        // 这里假设有一个合同表 t_contract，包含 party_b_phone（乙方电话）和 party_c_phone（丙方电话）
-        // boolean isSigned = customerMapper.checkContractExists(phone);
-        // return isSigned ? "是" : "否";
-        
-        // 临时返回默认值
-        return "否";
+        boolean isSigned = customerMapper.checkContractExists(phone);
+        return isSigned ? "是" : "否";
     }
 
     /**
@@ -95,12 +90,8 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer>
      * 逻辑：财务管理->订单管理->订单总数量->订单状态为已完成、待执行（下单人手机号=客户手机号）
      */
     private Integer getOrderCount(String phone) {
-        // TODO: 待财务管理-订单管理功能完成后实现
-        // 这里假设有一个订单表 t_order，包含 customer_phone（下单人手机）和 status（订单状态）
-        // return customerMapper.getOrderCountByPhone(phone);
-        
-        // 临时返回默认值
-        return 0;
+        Integer count = customerMapper.getOrderCountByPhone(phone);
+        return count != null ? count : 0;
     }
 
     /**

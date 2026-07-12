@@ -10,4 +10,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface ElderlyService extends IService<Elderly> {
     Elderly queryByIdCard(String idCard);
+    
+    /**
+     * 更新老人状态为已入住
+     * @param elderlyId 老人ID
+     */
+    void updateStatusToCheckedIn(Integer elderlyId);
 }

@@ -2,6 +2,7 @@ package com.soft.mapper;
 
 import com.soft.pojo.RoomType;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
 * @author 12
@@ -10,7 +11,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.soft.pojo.RoomType
 */
 public interface RoomTypeMapper extends BaseMapper<RoomType> {
-
+    /**
+     * 统计指定房型的房间数量
+     * @param roomTypeId 房型ID
+     * @return 房间数量
+     */
+    Integer countRoomsByTypeId(@Param("roomTypeId") Integer roomTypeId);
 }
 
 

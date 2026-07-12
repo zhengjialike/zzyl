@@ -8,8 +8,10 @@ import com.soft.dto.Nursing.NursingPlainDto;
 import com.soft.dto.Nursing.NursingPlainPageDto;
 import com.soft.dto.Nursing.PlainItemDto;
 import com.soft.mapper.PlainItemMapper;
+import com.soft.pojo.NursingLevel;
 import com.soft.pojo.NursingPlain;
 import com.soft.pojo.PlainItem;
+import com.soft.service.NursingLevelService;
 import com.soft.service.NursingPlainService;
 import com.soft.mapper.NursingPlainMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,9 @@ public class NursingPlainServiceImpl extends ServiceImpl<NursingPlainMapper, Nur
     private NursingPlainMapper nursingPlainMapper;
     @Autowired
     private PlainItemMapper plainItemMapper;
+    
+    @Autowired
+    private NursingLevelService nursingLevelService;
 
     @Transactional
     @Override
@@ -123,16 +128,22 @@ public class NursingPlainServiceImpl extends ServiceImpl<NursingPlainMapper, Nur
         params.eq(!StringUtils.isBlank(plainname),"plainname",plainname);
         params.eq(!StringUtils.isBlank(islock),"islock",islock);
         List<NursingPlain> nursingPlains = nursingPlainMapper.selectList(page, params);
+        
+        // 检查每个护理计划是否被护理等级引用
         nursingPlains.forEach(item->{
-            //获得每个护理计划id
             Integer id = item.getId();
-            //根据id查询中间表中某个护理计划对应的所有护理项
-            QueryWrapper<PlainItem> wrapper=new QueryWrapper<>();
-            wrapper.eq("plain_id",id);
-            Long value = plainItemMapper.selectCount(wrapper);
-            if(value!=0){
-                //该护理计划下存在护理项
+            
+            // 查询是否有护理等级引用了该护理计划
+            QueryWrapper<NursingLevel> wrapper = new QueryWrapper<>();
+            wrapper.eq("plainid", id);
+            Long count = nursingLevelService.count(wrapper);
+            
+            if(count > 0){
+                // 该护理计划已被护理等级引用，禁止删除和编辑
                 item.setFlag(1);
+            } else {
+                // 未被引用，允许操作
+                item.setFlag(0);
             }
         });
 
@@ -146,6 +157,47 @@ public class NursingPlainServiceImpl extends ServiceImpl<NursingPlainMapper, Nur
 
         return nursingPlainMapper.totalPlainItemPayMapper(id);
 
+    }
+
+    @Override
+    public Map<String, Object> delNursingPlainService(Integer id) {
+        Map<String, Object> result = new HashMap<>();
+        
+        if (id == null) {
+            result.put("code", 400);
+            result.put("msg", "护理计划ID不能为空");
+            return result;
+        }
+        
+        try {
+            // 检查是否被护理等级引用
+            QueryWrapper<NursingLevel> wrapper = new QueryWrapper<>();
+            wrapper.eq("plainid", id);
+            Long count = nursingLevelService.count(wrapper);
+            
+            if (count > 0) {
+                result.put("code", 400);
+                result.put("msg", "该护理计划已被护理等级引用，无法删除");
+                return result;
+            }
+            
+            // 先删除关联的护理项
+            QueryWrapper<PlainItem> itemWrapper = new QueryWrapper<>();
+            itemWrapper.eq("plain_id", id);
+            plainItemMapper.delete(itemWrapper);
+            
+            // 再删除护理计划
+            this.removeById(id);
+            
+            result.put("code", 200);
+            result.put("msg", "删除成功");
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "删除失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return result;
     }
 }
 

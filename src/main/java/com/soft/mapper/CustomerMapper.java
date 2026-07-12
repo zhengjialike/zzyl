@@ -14,25 +14,14 @@ import java.util.List;
 */
 public interface CustomerMapper extends BaseMapper<Customer> {
     /**
-     * 检查客户是否已签约（是否存在相关合同） TODO
-     *     <select id="checkContractExists" resultType="boolean">
-     *         SELECT EXISTS(
-     *             SELECT 1 FROM t_contract
-     *             WHERE party_b_phone = #{phone} OR party_c_phone = #{phone}
-     *         )
-     *     </select>
+     * 检查客户是否已签约（是否存在相关合同）
      */
-    //boolean checkContractExists(@Param("phone") String phone);
+    boolean checkContractExists(@Param("phone") String phone);
 
     /**
-     * 查询客户的订单数量（状态为已完成或待执行） TODO
-     *  <select id="getOrderCountByPhone" resultType="integer">
-     *         SELECT COUNT(*) FROM t_order
-     *         WHERE customer_phone = #{phone}
-     *           AND status IN ('completed', 'pending')
-     *     </select>
+     * 查询客户的订单数量（状态为已完成或待执行）
      */
-    //Integer getOrderCountByPhone(@Param("phone") String phone);
+    Integer getOrderCountByPhone(@Param("phone") String phone);
 
     /**
      * 查询客户绑定的所有老人姓名

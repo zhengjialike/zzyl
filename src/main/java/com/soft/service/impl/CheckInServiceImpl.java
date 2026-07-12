@@ -7,15 +7,8 @@ import com.soft.dto.CheckInPageDto;
 import com.soft.dto.StepSubmitDto;
 import com.soft.mapper.CheckInMapper;
 import com.soft.mapper.ContractMapper;
-import com.soft.pojo.ApplyLog;
-import com.soft.pojo.CheckIn;
-import com.soft.pojo.Contract;
-import com.soft.pojo.Elderly;
-import com.soft.pojo.FamilyMember;
-import com.soft.service.ApplyLogService;
-import com.soft.service.CheckInService;
-import com.soft.service.ElderlyService;
-import com.soft.service.FamilyMemberService;
+import com.soft.pojo.*;
+import com.soft.service.*;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +35,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     @Autowired private ApplyLogService applyLogService;
     @Autowired private FamilyMemberService familyMemberService;
     @Autowired private ElderlyService elderlyService;
+    @Autowired private BedService bedService;
 
     @Override
     public Map<String, Object> pageList(CheckInPageDto dto) {
@@ -129,13 +123,15 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
                 checkIn.setFinishTime(LocalDateTime.now());
                 checkIn.setFlowStatus("已完成");
                 createContract(checkIn, operator);
+                
                 // 老人状态改为在住
                 if (checkIn.getElderId() != null) {
-                    Elderly elderlyUpd = elderlyService.getById(checkIn.getElderId());
-                    if (elderlyUpd != null) {
-                        elderlyUpd.setStatus(1);
-                        elderlyService.updateById(elderlyUpd);
-                    }
+                    elderlyService.updateStatusToCheckedIn(checkIn.getElderId());
+                }
+                
+                // 更新床位信息：将老人ID绑定到床位
+                if (StringUtils.hasText(checkIn.getBedNo()) && checkIn.getElderId() != null) {
+                    updateBedWithElderly(checkIn.getBedNo(), checkIn.getElderId());
                 }
                 break;
             default:
@@ -150,6 +146,31 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         result.put("msg", STEP_NAMES[step-1] + "提交成功");
         result.put("currentStep", checkIn.getCurrentStep());
         return result;
+    }
+
+    /**
+     * 根据床位号更新床位的老人ID和状态
+     */
+    private void updateBedWithElderly(String bedNo, Integer elderlyId) {
+        try {
+            // 根据床位号查询床位
+            QueryWrapper<Bed> wrapper = new QueryWrapper<>();
+            wrapper.eq("bed_number", bedNo);
+            Bed bed = bedService.getOne(wrapper);
+            
+            if (bed != null) {
+                // 更新床位的老人ID和状态
+                bed.setElderlyId(elderlyId);
+                bed.setStatus(1); // 1-已入住
+                bedService.updateById(bed);
+                System.out.println("床位更新成功: bedNo=" + bedNo + ", elderlyId=" + elderlyId);
+            } else {
+                System.err.println("未找到床位: bedNo=" + bedNo);
+            }
+        } catch (Exception e) {
+            System.err.println("更新床位信息失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void createContract(CheckIn checkIn, String creator) {

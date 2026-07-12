@@ -61,12 +61,8 @@ public class RoomTypeServiceImpl extends ServiceImpl<RoomTypeMapper, RoomType>
 
     @Override
     public boolean hasRooms(Integer roomTypeId) {
-        // TODO: 待房间管理功能完成后实现
-        // 逻辑：查询 t_room 表中 room_type_id = roomTypeId 的记录数量
-        // return roomTypeMapper.countRoomsByTypeId(roomTypeId) > 0;
-
-        // 临时返回 false，表示可以删除
-        return false;
+        Integer count = roomTypeMapper.countRoomsByTypeId(roomTypeId);
+        return count != null && count > 0;
     }
 }
 

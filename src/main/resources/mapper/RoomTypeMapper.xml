@@ -21,4 +21,10 @@
         image,description,status,
         create_user,create_time,update_time
     </sql>
+
+    <!-- 统计指定房型的房间数量 -->
+    <select id="countRoomsByTypeId" resultType="integer">
+        SELECT COUNT(*) FROM t_room WHERE room_type_id = #{roomTypeId}
+    </select>
+
 </mapper>

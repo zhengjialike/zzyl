@@ -6,14 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.soft.dto.RoomEquipment.AlertRecordQueryDto;
 import com.soft.mapper.AlertRecordMapper;
-import com.soft.pojo.AlertRecord;
-import com.soft.pojo.AlertRule;
-import com.soft.pojo.Device;
-import com.soft.pojo.Product;
-import com.soft.service.AlertRecordService;
-import com.soft.service.AlertRuleService;
-import com.soft.service.DeviceService;
-import com.soft.service.ProductService;
+import com.soft.pojo.*;
+import com.soft.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -41,6 +35,15 @@ public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, Alert
 
     @Autowired
     private AlertRuleService alertRuleService;
+    
+    @Autowired
+    private RoomService roomService;
+    
+    @Autowired
+    private BedService bedService;
+    
+    @Autowired
+    private ElderlyService elderlyService;
 
     @Override
     public Map<String, Object> queryAlertRecordList(AlertRecordQueryDto dto) {
@@ -225,11 +228,14 @@ public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, Alert
         try {
             switch (locationType) {
                 case 1: // 房间
-                    return locationId + "房间";
+                    Room room = roomService.getById(locationId);
+                    return room != null ? room.getRoomNumber() + "房间" : "-";
                 case 2: // 床位
-                    return locationId + "床位";
+                    Bed bed = bedService.getById(locationId);
+                    return bed != null ? bed.getBedNumber() + "床位" : "-";
                 case 3: // 老人
-                    return "老人-" + locationId;
+                    Elderly elderly = elderlyService.getById(locationId);
+                    return elderly != null ? elderly.getRealName() : "-";
                 default:
                     return "-";
             }

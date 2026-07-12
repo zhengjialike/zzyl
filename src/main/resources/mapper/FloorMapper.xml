@@ -16,4 +16,10 @@
         id,floor_name,sort,
         create_time,update_time
     </sql>
+
+    <!-- 统计指定楼层的房间数量 -->
+    <select id="countRoomsByFloorId" resultType="integer">
+        SELECT COUNT(*) FROM t_room WHERE floor_id = #{floorId}
+    </select>
+
 </mapper>

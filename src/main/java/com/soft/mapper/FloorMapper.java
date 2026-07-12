@@ -2,6 +2,7 @@ package com.soft.mapper;
 
 import com.soft.pojo.Floor;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
 * @author 12
@@ -10,7 +11,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @Entity com.soft.pojo.Floor
 */
 public interface FloorMapper extends BaseMapper<Floor> {
-// TODO: 待房间管理完成后添加 countRoomsByFloorId 方法
+    /**
+     * 统计指定楼层的房间数量
+     * @param floorId 楼层ID
+     * @return 房间数量
+     */
+    Integer countRoomsByFloorId(@Param("floorId") Integer floorId);
 }
 
 

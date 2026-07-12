@@ -48,4 +48,10 @@ public class NursingPlainItemController {
     public Double totalPlainPay(@RequestParam(name="plainid") Integer plainid){
         return nursingPlainService.totalPlainItemPayService(plainid);
     }
+    
+    /*定义接口删除护理计划*/
+    @RequestMapping("/delNursingPlain")
+    public Map<String,Object> delNursingPlain(@RequestParam(name="id") Integer id){
+        return nursingPlainService.delNursingPlainService(id);
+    }
 }

@@ -27,4 +27,7 @@ public interface NursingPlainService extends IService<NursingPlain> {
 
     /*根据护理计划id，通过该计划下所有护理项总费用*/
     public Double totalPlainItemPayService(Integer id);
+    
+    /*删除护理计划*/
+    public Map<String,Object> delNursingPlainService(Integer id);
 }
