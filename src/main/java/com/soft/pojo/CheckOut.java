@@ -60,4 +60,12 @@ public class CheckOut {
     private LocalDate billStartDate;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate billEndDate;
+
+    /** 以下字段用于退住详情聚合展示，不直接映射到 t_check_out。 */
+    @TableField(exist = false)
+    private String phone;
+    @TableField(exist = false)
+    private Integer contractId;
+    @TableField(exist = false)
+    private String contractNo;
 }

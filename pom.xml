@@ -147,7 +147,8 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.soft.ZzylApplication</mainClass>
-                    <skip>true</skip>
+                    <!-- 允许使用 mvn spring-boot:run 和可执行 Jar 启动后端。 -->
+                    <skip>false</skip>
                 </configuration>
                 <executions>
                     <execution>

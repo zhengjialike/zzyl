@@ -10,5 +10,5 @@ public interface ContractService extends IService<Contract> {
 
     Map<String, Object> pageList(ContractPageDto dto);
 
-    Contract queryDetail(Integer id);
+    Map<String, Object> queryDetail(Integer id);
 }

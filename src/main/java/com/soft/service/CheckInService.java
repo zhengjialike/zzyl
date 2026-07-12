@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.soft.dto.CheckInPageDto;
 import com.soft.dto.StepSubmitDto;
 import com.soft.pojo.ApplyLog;
+import com.soft.pojo.Bed;
 import com.soft.pojo.CheckIn;
 
 import java.util.List;
@@ -20,6 +21,8 @@ public interface CheckInService extends IService<CheckIn> {
     CheckIn queryDetail(Integer id);
 
     List<ApplyLog> queryLogs(Integer id);
+
+    List<Bed> queryAvailableBeds();
 
     Map<String, Object> revoke(Integer id, String operator);
 }

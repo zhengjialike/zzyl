@@ -1,7 +1,6 @@
 package com.soft.controller;
 
 import com.soft.dto.ContractPageDto;
-import com.soft.pojo.Contract;
 import com.soft.service.ContractService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,7 +21,7 @@ public class ContractController {
     }
 
     @RequestMapping("/contractDetail")
-    public Contract detail(@RequestBody Map<String, Integer> payload) {
+    public Map<String, Object> detail(@RequestBody Map<String, Integer> payload) {
         return contractService.queryDetail(payload.get("id"));
     }
 }
