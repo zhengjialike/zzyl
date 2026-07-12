@@ -6,8 +6,10 @@ import com.soft.dto.AppointmentResponseDto;
 import com.soft.dto.ArrivalConfirmDto;
 import com.soft.pojo.Appointment;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.soft.pojo.Appointment;
 
 /**
+* @description 针对表【t_appointment】的数据库操作Service
 * @author 12
 * @description 针对表【t_appointment(预约记录表)】的数据库操作Service
 * @createDate 2026-07-09 23:23:59
