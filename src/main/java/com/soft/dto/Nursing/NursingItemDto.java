@@ -1,4 +1,4 @@
-package com.soft.dto;
+package com.soft.dto.Nursing;
 
 import lombok.Data;
 

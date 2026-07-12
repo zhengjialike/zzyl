@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.soft.dto.NursingItemDto;
+import com.soft.dto.Nursing.NursingItemDto;
 import com.soft.pojo.NursingItem;
 import com.soft.mapper.NursingItemMapper;
 import com.soft.service.NursingItemService;

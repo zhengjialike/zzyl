@@ -2,20 +2,49 @@ package com.soft.controller.RoomEquipment;
 
 
 import com.soft.dto.RoomEquipment.DeviceQueryDto;
+import com.soft.pojo.AlertRecord;
+import com.soft.pojo.AlertRule;
 import com.soft.pojo.Device;
+import com.soft.pojo.Product;
+import com.soft.service.AlertRecordService;
+import com.soft.service.AlertRuleService;
 import com.soft.service.DeviceService;
+import com.soft.service.ProductService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 @RestController
 public class DeviceController {
 
     @Autowired
     private DeviceService deviceService;
+
+    @Autowired
+    private ProductService productService;
+
+    @Autowired
+    private AlertRecordService alertRecordService;
+
+    @Autowired
+    private AlertRuleService alertRuleService;
+
+    @Autowired
+    private com.soft.service.RoomService roomService;
+
+    @Autowired
+    private com.soft.service.BedService bedService;
+
+    @Autowired
+    private com.soft.service.ElderlyService elderlyService;
 
     /**
      * 新增设备
@@ -178,5 +207,179 @@ public class DeviceController {
             return user.getUname();
         }
         return "系统"; // 默认值
+    }
+
+    /**
+     * 获取设备详情
+     */
+    @GetMapping("/getDeviceInfo")
+    public Map<String, Object> getDeviceInfo(@RequestParam("id") Integer id) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            Device device = deviceService.getById(id);
+            if (device == null) {
+                result.put("code", 404);
+                result.put("msg", "设备不存在");
+                return result;
+            }
+
+            Map<String, Object> deviceMap = new HashMap<>();
+            deviceMap.put("id", device.getId());
+            deviceMap.put("deviceName", device.getDeviceName());
+            deviceMap.put("remarkName", device.getRemarkName());
+            deviceMap.put("productId", device.getProductId());
+            deviceMap.put("productName", getProductName(device.getProductId()));
+            deviceMap.put("locationType", device.getLocationType());
+            deviceMap.put("locationId", device.getLocationId());
+            deviceMap.put("locationName", getLocationName(device.getLocationType(), device.getLocationId()));
+            deviceMap.put("status", device.getStatus());
+            deviceMap.put("createUser", device.getCreateUser());
+            deviceMap.put("createTime", device.getCreateTime());
+
+            result.put("code", 200);
+            result.put("data", deviceMap);
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "获取设备详情失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    /**
+     * 根据产品ID获取功能模块列表
+     */
+    @GetMapping("/getProductFunctions")
+    public Map<String, Object> getProductFunctions(@RequestParam("productId") Integer productId) {
+        Map<String, Object> result = new HashMap<>();
+
+        if (productId == null) {
+            result.put("code", 400);
+            result.put("msg", "产品ID不能为空");
+            return result;
+        }
+
+        try {
+            Product product = productService.getById(productId);
+            if (product == null) {
+                result.put("code", 404);
+                result.put("msg", "产品不存在");
+                return result;
+            }
+
+            String functions = product.getFunctions();
+            List<String> functionList = new ArrayList<>();
+
+            if (functions != null && !functions.trim().isEmpty()) {
+                String[] funcArray = functions.split(",");
+                for (String func : funcArray) {
+                    String trimmedFunc = func.trim();
+                    if (!trimmedFunc.isEmpty()) {
+                        functionList.add(trimmedFunc);
+                    }
+                }
+            }
+
+            result.put("code", 200);
+            result.put("data", functionList);
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "获取功能模块失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    /**
+     * 获取设备的报警记录
+     */
+    @GetMapping("/getDeviceAlertRecords")
+    public Map<String, Object> getDeviceAlertRecords(@RequestParam("deviceId") String deviceId) {
+        Map<String, Object> result = new HashMap<>();
+
+        if (deviceId == null || deviceId.trim().isEmpty()) {
+            result.put("code", 400);
+            result.put("msg", "设备ID不能为空");
+            return result;
+        }
+
+        try {
+            QueryWrapper<AlertRecord> wrapper = new QueryWrapper<>();
+            wrapper.eq("device_id", deviceId);
+            wrapper.orderByDesc("alert_time");
+
+            List<AlertRecord> records = alertRecordService.list(wrapper);
+
+            List<Map<String, Object>> recordList = records.stream().map(record -> {
+                Map<String, Object> recordMap = new HashMap<>();
+                recordMap.put("id", record.getId());
+                recordMap.put("ruleId", record.getRuleId());
+
+                // 获取规则名称
+                AlertRule rule = alertRuleService.getById(record.getRuleId());
+                recordMap.put("ruleName", rule != null ? rule.getRuleName() : "-");
+
+                recordMap.put("handleStatus", record.getHandleStatus());
+                recordMap.put("handleResult", record.getHandleResult() != null ? record.getHandleResult() : "-");
+                recordMap.put("dataValue", record.getDataValue());
+                recordMap.put("handleTime", record.getHandleTime());
+
+                return recordMap;
+            }).collect(Collectors.toList());
+
+            result.put("code", 200);
+            result.put("data", recordList);
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "获取报警记录失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    /**
+     * 获取产品名称
+     */
+    private String getProductName(Integer productId) {
+        if (productId == null) {
+            return "-";
+        }
+        try {
+            Product product = productService.getById(productId);
+            return product != null ? product.getProductName() : "-";
+        } catch (Exception e) {
+            return "-";
+        }
+    }
+
+    /**
+     * 获取位置名称
+     */
+    private String getLocationName(Integer locationType, Integer locationId) {
+        if (locationId == null) {
+            return "-";
+        }
+
+        try {
+            switch (locationType) {
+                case 1: // 房间
+                    com.soft.pojo.Room room = roomService.getById(locationId);
+                    return room != null ? room.getRoomNumber() + "房间" : "-";
+                case 2: // 床位
+                    com.soft.pojo.Bed bed = bedService.getById(locationId);
+                    return bed != null ? bed.getBedNumber() + "床位" : "-";
+                case 3: // 老人
+                    com.soft.pojo.Elderly elderly = elderlyService.getById(locationId);
+                    return elderly != null ? elderly.getRealName() : "-";
+                default:
+                    return "-";
+            }
+        } catch (Exception e) {
+            return "-";
+        }
     }
 }

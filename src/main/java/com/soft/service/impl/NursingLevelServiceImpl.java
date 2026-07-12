@@ -2,7 +2,7 @@ package com.soft.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.soft.dto.NursingLevelDto;
+import com.soft.dto.Nursing.NursingLevelDto;
 import com.soft.pojo.NursingLevel;
 import com.soft.service.NursingLevelService;
 import com.soft.mapper.NursingLevelMapper;

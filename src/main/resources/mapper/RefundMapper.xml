@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.RefundMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.Refund">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="refundNo" column="refund_no" jdbcType="VARCHAR"/>
+            <result property="orderId" column="order_id" jdbcType="BIGINT"/>
+            <result property="refundAmount" column="refund_amount" jdbcType="DECIMAL"/>
+            <result property="status" column="status" jdbcType="TINYINT"/>
+            <result property="customerId" column="customer_id" jdbcType="BIGINT"/>
+            <result property="refundReason" column="refund_reason" jdbcType="VARCHAR"/>
+            <result property="refundChannel" column="refund_channel" jdbcType="VARCHAR"/>
+            <result property="refundMethod" column="refund_method" jdbcType="VARCHAR"/>
+            <result property="appliedAt" column="applied_at" jdbcType="TIMESTAMP"/>
+            <result property="refundedAt" column="refunded_at" jdbcType="TIMESTAMP"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,refund_no,order_id,
+        refund_amount,status,customer_id,
+        refund_reason,refund_channel,refund_method,
+        applied_at,refunded_at,create_time
+    </sql>
+</mapper>

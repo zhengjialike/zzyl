@@ -1,13 +1,11 @@
-package com.soft.dto;
+package com.soft.dto.Nursing;
 
 import lombok.Data;
 
 @Data
-public class NursingPlainPageDto {
-
-    private String plainname;
+public class NursingLevelDto {
+    private String levelname;
     private String islock;
     private Integer pageNum=1;
     private Integer pageSize=10;
 }
-

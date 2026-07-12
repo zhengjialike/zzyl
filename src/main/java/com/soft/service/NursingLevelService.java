@@ -1,6 +1,6 @@
 package com.soft.service;
 
-import com.soft.dto.NursingLevelDto;
+import com.soft.dto.Nursing.NursingLevelDto;
 import com.soft.pojo.NursingLevel;
 import com.baomidou.mybatisplus.extension.service.IService;
 

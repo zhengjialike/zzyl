@@ -1,7 +1,7 @@
 package com.soft.controller;
 
-import com.soft.dto.NursingPlainDto;
-import com.soft.dto.NursingPlainPageDto;
+import com.soft.dto.Nursing.NursingPlainDto;
+import com.soft.dto.Nursing.NursingPlainPageDto;
 import com.soft.pojo.NursingPlain;
 import com.soft.service.NursingPlainService;
 import org.springframework.beans.factory.annotation.Autowired;

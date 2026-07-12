@@ -1,6 +1,6 @@
 package com.soft.controller;
 
-import com.soft.dto.NursingLevelDto;
+import com.soft.dto.Nursing.NursingLevelDto;
 import com.soft.pojo.NursingLevel;
 import com.soft.service.NursingLevelService;
 import org.springframework.beans.factory.annotation.Autowired;

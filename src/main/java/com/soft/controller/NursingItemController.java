@@ -1,6 +1,6 @@
 package com.soft.controller;
 
-import com.soft.dto.NursingItemDto;
+import com.soft.dto.Nursing.NursingItemDto;
 import com.soft.pojo.NursingItem;
 import com.soft.service.NursingItemService;
 import org.springframework.beans.factory.annotation.Autowired;

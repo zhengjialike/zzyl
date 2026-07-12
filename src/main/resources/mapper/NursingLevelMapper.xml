@@ -22,7 +22,7 @@
     <!--定义sql-->
     <select id="queryNursingListMapper"
             resultType="com.soft.pojo.NursingLevel"
-            parameterType="com.soft.dto.NursingLevelDto">
+            parameterType="com.soft.dto.Nursing.NursingLevelDto">
 
         select t_nursing_level.*,t_nursing_plain.plainname
         from t_nursing_plain
