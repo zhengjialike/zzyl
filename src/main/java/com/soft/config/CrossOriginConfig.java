@@ -1,19 +1,35 @@
 package com.soft.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class CrossOriginConfig implements WebMvcConfigurer {
 
+    @Value("${upload.local-dir:D:/zzyl-uploads}")
+    private String localDir;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")                // 允许所有路径
-                .allowedOriginPatterns("http://localhost")       // 允许所有来源（生产环境请替换为具体域名）
-                .allowedMethods("*")              // 允许所有请求方法（GET, POST, PUT, DELETE等）
-                .allowedHeaders("*")              // 允许所有请求头
-                .allowCredentials(true)           // 允许携带凭证（Cookie）
-                .maxAge(3600);                    // 预检请求缓存时间（秒）
+        registry.addMapping("/**")
+                .allowedOriginPatterns("http://localhost")
+                .allowedMethods("*")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 把 /uploads/** 映射到本地上传目录
+        String location = localDir.endsWith("/") ? localDir : localDir + "/";
+        if (!location.startsWith("file:")) {
+            location = "file:///" + location.replace("\\", "/");
+        }
+        registry.addResourceHandler("/uploads/**")
+.addResourceLocations(location);
     }
 }
