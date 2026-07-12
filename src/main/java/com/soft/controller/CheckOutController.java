@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -75,6 +77,6 @@ public class CheckOutController {
     private String currentUserName(HttpSession session) {
         Object online = session.getAttribute("online");
         if (online instanceof UserLineDto dto) return dto.getUname();
-        return "未知";
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "登录状态已失效，请重新登录");
     }
 }

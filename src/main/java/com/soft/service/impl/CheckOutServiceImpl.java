@@ -6,7 +6,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.soft.dto.CheckOutPageDto;
 import com.soft.dto.StepSubmitDto;
 import com.soft.mapper.CheckOutMapper;
+import com.soft.mapper.CheckInMapper;
 import com.soft.mapper.ContractMapper;
+import com.soft.mapper.BedMapper;
 import com.soft.pojo.*;
 import com.soft.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +26,15 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> implements CheckOutService {
 
-    private static final String[] STEP_NAMES = {"申请退住", "申请审批", "解除合同", "调整账单", "账单审批", "费用清算"};
-    private static final String[] STEP_ROLES = {"发起人", "审批人", "操作人", "操作人", "审批人", "操作人"};
-    private static final String[] STEP_OPS = {"已发起", "已审批", "已解除", "已调整", "已审批", "已结清"};
+    /** 原型定义的退住流程是七步，账单审批与退住审批是两个独立节点。 */
+    private static final String[] STEP_NAMES = {"申请退住", "申请审批", "解除合同", "调整账单", "账单审批", "退住审批", "费用清算"};
+    private static final String[] STEP_ROLES = {"发起人", "审批人", "操作人", "操作人", "审批人", "审批人", "操作人"};
+    private static final String[] STEP_OPS = {"已发起", "已审批", "已提交协议", "已调整", "已审批", "已审批", "已结清"};
 
     @Autowired private CheckOutMapper checkOutMapper;
+    @Autowired private CheckInMapper checkInMapper;
     @Autowired private ContractMapper contractMapper;
+    @Autowired private BedMapper bedMapper;
     @Autowired private ApplyLogService applyLogService;
     @Autowired private BillService billService;
     @Autowired private ElderlyService elderlyService;
@@ -94,6 +99,18 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
         if (dto.getCheckOutDate() == null || !StringUtils.hasText(dto.getCheckoutReason())) {
             result.put("msg", "请填写退住日期和退住原因"); return result;
         }
+
+        // 退住基本信息以后端最近一张已完成入住单为准，避免前端伪造床位、护理等级和费用期限。
+        QueryWrapper<CheckIn> checkInWrapper = new QueryWrapper<>();
+        checkInWrapper.eq("elder_id", elderly.getId()).eq("flow_status", "已完成")
+                .orderByDesc("finish_time").last("LIMIT 1");
+        CheckIn latestCheckIn = checkInMapper.selectOne(checkInWrapper);
+        if (latestCheckIn == null) { result.put("msg", "未找到该老人的有效入住记录"); return result; }
+        if (latestCheckIn.getFeeStartDate() != null && latestCheckIn.getFeeEndDate() != null
+                && (dto.getCheckOutDate().isBefore(latestCheckIn.getFeeStartDate())
+                || dto.getCheckOutDate().isAfter(latestCheckIn.getFeeEndDate()))) {
+            result.put("msg", "请在费用期限内发起退住申请"); return result;
+        }
         CheckOut co = new CheckOut();
         co.setBillNo(generateBillNo("TZ"));
         co.setElderId(elderly.getId());
@@ -102,6 +119,11 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
         co.setCheckOutDate(dto.getCheckOutDate());
         co.setReason(dto.getCheckoutReason());
         co.setRemark(dto.getRemark());
+        co.setNursingLevel(latestCheckIn.getNursingLevel());
+        co.setBedNo(latestCheckIn.getBedNo());
+        co.setAdvisor(latestCheckIn.getAdvisor());
+        co.setBillStartDate(latestCheckIn.getFeeStartDate());
+        co.setBillEndDate(latestCheckIn.getFeeEndDate());
         co.setCurrentStep(2);
         co.setFlowStatus("申请中");
         co.setApplicant(applicant);
@@ -121,7 +143,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
         CheckOut co = checkOutMapper.selectById(dto.getId());
         if (co == null) { result.put("msg", "单据不存在"); return result; }
         int step = dto.getStep();
-        if (step < 2 || step > 6) { result.put("msg", "无效步骤"); return result; }
+        if (step < 2 || step > 7) { result.put("msg", "无效步骤"); return result; }
         if (!"申请中".equals(co.getFlowStatus())) { result.put("msg", "当前退住申请已结束，不能继续提交"); return result; }
         if (co.getCurrentStep() == null || step != co.getCurrentStep()) {
             result.put("msg", "流程节点已变化，请刷新页面后重试"); return result;
@@ -145,30 +167,61 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
                 }
                 co.setTerminateDate(dto.getTerminateDate());
                 co.setTerminateAgreement(dto.getTerminateAgreement());
-                invalidateContract(co, dto.getContractId());
+                // 此节点只保存解除协议并关联合同。原型要求合同在退住审批通过前保持原状态。
+                linkContractForCheckout(co, dto.getContractId());
                 co.setCurrentStep(4);
                 break;
             case 4: // 调整账单
                 if (dto.getBills() != null) {
                     dto.getBills().forEach(b -> {
-                        if (b.getId() != null) billService.updateById(b);
-                        else billService.save(b);
+                        // 账单只能属于当前老人，禁止通过请求体修改其他老人的账单。
+                        b.setElderlyId(co.getElderId());
+                        if (b.getId() != null) {
+                            Bill original = billService.getById(b.getId());
+                            if (original != null && co.getElderId().equals(original.getElderlyId())) {
+                                billService.updateById(b);
+                            }
+                        }
                     });
                 }
                 co.setCurrentStep(5);
                 break;
-            case 5: // 账单审批/退住审批
+            case 5: // 账单审批
+                if (!"通过".equals(dto.getApproveResult()) && !"驳回".equals(dto.getApproveResult())) {
+                    result.put("msg", "请选择审批结果"); return result;
+                }
+                operation = "驳回".equals(dto.getApproveResult()) ? "已驳回" : "已通过";
+                if ("驳回".equals(dto.getApproveResult())) {
+                    co.setFlowStatus("已关闭");
+                    unlinkPendingContract(co.getId());
+                }
+                else co.setCurrentStep(6);
+                break;
+            case 6: // 退住审批
                 if (!"通过".equals(dto.getApproveResult()) && !"驳回".equals(dto.getApproveResult())) {
                     result.put("msg", "请选择审批结果"); return result;
                 }
                 co.setApprover(operator);
-                if (dto.getApproveRemark() != null) co.setApproveRemark(dto.getApproveRemark());
+                co.setApproveRemark(dto.getApproveRemark());
                 co.setApproveResult(dto.getApproveResult());
                 operation = "驳回".equals(dto.getApproveResult()) ? "已驳回" : "已通过";
-                if ("驳回".equals(dto.getApproveResult())) co.setFlowStatus("已关闭");
-                else co.setCurrentStep(6);
+                if ("驳回".equals(dto.getApproveResult())) {
+                    co.setFlowStatus("已关闭");
+                    unlinkPendingContract(co.getId());
+                } else {
+                    // 只有退住审批通过后合同才变为已失效，解除记录才出现在合同详情中。
+                    invalidateLinkedContract(co);
+                    co.setCurrentStep(7);
+                }
                 break;
-            case 6: // 费用清算
+            case 7: // 费用清算
+                List<Bill> unpaidBills = billService.queryByElderId(co.getElderId()).stream()
+                        .filter(bill -> Integer.valueOf(0).equals(bill.getStatus())).toList();
+                if (!unpaidBills.isEmpty()) { result.put("msg", "存在欠费账单，请完成缴费后再清算"); return result; }
+                if (dto.getRefundAmount() != null && dto.getRefundAmount().signum() > 0
+                        && (!StringUtils.hasText(dto.getRefundMethod()) || !StringUtils.hasText(dto.getRefundVoucher()))) {
+                    result.put("msg", "退款时必须选择退款方式并上传退款凭证"); return result;
+                }
                 co.setRefundWay(dto.getRefundMethod());
                 co.setRefundRemark(dto.getRefundRemark());
                 co.setRefundVoucher(dto.getRefundVoucher());
@@ -177,12 +230,18 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
                 co.setSettlementAmount(dto.getRefundAmount());
                 co.setFinishTime(LocalDateTime.now());
                 co.setFlowStatus("已完成");
-                co.setCurrentStep(6);
+                co.setCurrentStep(7);
                 if (co.getElderId() != null) {
                     Elderly elderly = elderlyService.getById(co.getElderId());
                     if (elderly != null) {
                         elderly.setStatus(2);
                         elderlyService.updateById(elderly);
+                    }
+                    // 退住完成后释放老人占用的床位，供新的入住申请选择。
+                    QueryWrapper<Bed> bedWrapper = new QueryWrapper<>();
+                    bedWrapper.eq("elderly_id", co.getElderId());
+                    for (Bed bed : bedMapper.selectList(bedWrapper)) {
+                        bed.setElderlyId(null); bed.setStatus(0); bedMapper.updateById(bed);
                     }
                 }
                 break;
@@ -197,24 +256,63 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
         return result;
     }
 
-    private void invalidateContract(CheckOut co, Integer contractId) {
+    /**
+     * 在“解除合同”节点记录本次退住选择的合同，但不提前改变合同状态。
+     * t_contract.check_out_id 充当退住单与合同之间的关联字段。
+     */
+    private void linkContractForCheckout(CheckOut co, Integer contractId) {
         QueryWrapper<Contract> cw = new QueryWrapper<>();
         cw.eq("elder_id", co.getElderId()).in("status", "未生效", "生效中");
         if (contractId != null) cw.eq("id", contractId);
         cw.orderByDesc("create_time").last("LIMIT 1");
         Contract contract = contractMapper.selectOne(cw);
         if (contract != null) {
-            contract.setStatus("已失效");
             contract.setCheckOutId(co.getId());
-            contract.setInvalidTime(LocalDateTime.now());
             contractMapper.updateById(contract);
         } else {
             throw new IllegalStateException("未找到可解除的有效合同");
         }
     }
 
+    /** 退住审批通过后，才正式将此前关联的合同置为已失效。 */
+    private void invalidateLinkedContract(CheckOut co) {
+        QueryWrapper<Contract> wrapper = new QueryWrapper<>();
+        wrapper.eq("check_out_id", co.getId()).last("LIMIT 1");
+        Contract contract = contractMapper.selectOne(wrapper);
+        if (contract == null) throw new IllegalStateException("未找到本次退住关联的合同");
+        contract.setStatus("已失效");
+        contract.setInvalidTime(LocalDateTime.now());
+        contractMapper.updateById(contract);
+    }
+
+    /** 审批驳回或用户撤销时，清除尚未生效的退住关联，合同保持原状态。 */
+    private void unlinkPendingContract(Integer checkOutId) {
+        QueryWrapper<Contract> wrapper = new QueryWrapper<>();
+        wrapper.eq("check_out_id", checkOutId).ne("status", "已失效");
+        for (Contract contract : contractMapper.selectList(wrapper)) {
+            contract.setCheckOutId(null);
+            contract.setInvalidTime(null);
+            contractMapper.updateById(contract);
+        }
+    }
+
     @Override
-    public CheckOut queryDetail(Integer id) { return checkOutMapper.selectById(id); }
+    public CheckOut queryDetail(Integer id) {
+        CheckOut detail = checkOutMapper.selectById(id);
+        if (detail == null) return null;
+        if (detail.getElderId() != null) {
+            Elderly elderly = elderlyService.getById(detail.getElderId());
+            if (elderly != null) detail.setPhone(elderly.getPhone());
+        }
+        QueryWrapper<Contract> contractWrapper = new QueryWrapper<>();
+        contractWrapper.eq("check_out_id", id).last("LIMIT 1");
+        Contract contract = contractMapper.selectOne(contractWrapper);
+        if (contract != null) {
+            detail.setContractId(contract.getId());
+            detail.setContractNo(contract.getContractNo());
+        }
+        return detail;
+    }
 
     @Override
     public List<ApplyLog> queryLogs(Integer id) {
@@ -229,9 +327,12 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
         Map<String, Object> result = new HashMap<>();
         CheckOut co = checkOutMapper.selectById(id);
         if (co == null) { result.put("code", 400); result.put("msg", "单据不存在"); return result; }
-        if (!"申请中".equals(co.getFlowStatus()) || !Integer.valueOf(2).equals(co.getCurrentStep())) {
-            result.put("code", 400); result.put("msg", "仅申请审批前可以撤销"); return result;
+        // 原型规则：退住审批通过前均可撤销；退住审批通过后撤销按钮必须置灰。
+        if (!"申请中".equals(co.getFlowStatus()) || co.getCurrentStep() == null || co.getCurrentStep() > 6) {
+            result.put("code", 400); result.put("msg", "退住审批通过后不能撤销"); return result;
         }
+        // 撤销时解除临时合同关联，合同状态维持原状，不展示解除记录。
+        unlinkPendingContract(id);
         co.setFlowStatus("已关闭");
         checkOutMapper.updateById(co);
         applyLogService.addLog("退住", id, co.getBillNo(), "撤销申请", operator, "发起人", "已撤销");

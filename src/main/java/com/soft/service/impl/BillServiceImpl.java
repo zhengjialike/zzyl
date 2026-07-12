@@ -10,6 +10,7 @@ import com.soft.service.CheckOutService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +23,8 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     @Lazy
     @Autowired
     private CheckOutService checkOutService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Override
     public Map<String, Object> queryByCheckOutId(Integer checkOutId) {
@@ -59,8 +62,14 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
             .filter(b -> b.getStatus() != null && b.getStatus() == 0)
             .collect(Collectors.toList()));
         
-        // 余额：有预充值或押金的记录（这里简化处理，实际应该有专门的余额表）
-        result.put("balance", List.of());
+        // 退住原型中的“余额”由老人余额账户提供，包括可退押金和预缴款。
+        // 使用最终数据库已有的 t_elder_balance，不改动护理或其他业务模块。
+        List<Map<String, Object>> balance = jdbcTemplate.queryForList(
+                "SELECT deposit_balance AS refundableDeposit, prepaid_balance AS prepaidAmount " +
+                        "FROM t_elder_balance WHERE elderly_id = ? AND del_flag = 0 " +
+                        "ORDER BY change_time DESC, id DESC LIMIT 1",
+                checkOut.getElderId());
+        result.put("balance", balance);
         
         // 未缴：同欠费
         result.put("unpaid", bills.stream()
