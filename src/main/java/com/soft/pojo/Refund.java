@@ -19,7 +19,7 @@ public class Refund {
      * 
      */
     @TableId(type = IdType.AUTO)
-    private Long id;
+    private Integer id;
 
     /**
      * 退款编号
@@ -29,7 +29,7 @@ public class Refund {
     /**
      * 关联订单ID
      */
-    private Long orderId;
+    private Integer orderId;
 
     /**
      * 退款金额
@@ -44,7 +44,7 @@ public class Refund {
     /**
      * 申请人
      */
-    private Long customerId;
+    private Integer customerId;
 
     /**
      * 退款原因

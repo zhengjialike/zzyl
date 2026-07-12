@@ -5,13 +5,13 @@
 <mapper namespace="com.soft.mapper.OrderMapper">
 
     <resultMap id="BaseResultMap" type="com.soft.pojo.Order">
-            <id property="id" column="id" jdbcType="BIGINT"/>
+            <id property="id" column="id" jdbcType="INTEGER"/>
             <result property="orderNo" column="order_no" jdbcType="VARCHAR"/>
-            <result property="elderlyId" column="elderly_id" jdbcType="BIGINT"/>
-            <result property="customerId" column="customer_id" jdbcType="BIGINT"/>
+            <result property="elderlyId" column="elderly_id" jdbcType="INTEGER"/>
+            <result property="customerId" column="customer_id" jdbcType="INTEGER"/>
             <result property="orderAmount" column="order_amount" jdbcType="DECIMAL"/>
             <result property="status" column="status" jdbcType="TINYINT"/>
-            <result property="nursingItemId" column="nursing_item_id" jdbcType="BIGINT"/>
+            <result property="nursingItemId" column="nursing_item_id" jdbcType="INTEGER"/>
             <result property="expectedServiceTime" column="expected_service_time" jdbcType="TIMESTAMP"/>
             <result property="cancelReason" column="cancel_reason" jdbcType="VARCHAR"/>
             <result property="paidAt" column="paid_at" jdbcType="TIMESTAMP"/>

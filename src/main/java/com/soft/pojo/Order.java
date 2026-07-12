@@ -20,7 +20,7 @@ public class Order {
      * 
      */
     @TableId(type = IdType.AUTO)
-    private Long id;
+    private Integer id;
 
     /**
      * 订单编号
@@ -30,12 +30,12 @@ public class Order {
     /**
      * 关联老人ID
      */
-    private Long elderlyId;
+    private Integer elderlyId;
 
     /**
      * 下单客户ID
      */
-    private Long customerId;
+    private Integer customerId;
 
     /**
      * 订单金额
@@ -50,7 +50,7 @@ public class Order {
     /**
      * 关联护理项目ID
      */
-    private Long nursingItemId;
+    private Integer nursingItemId;
 
     /**
      * 期望服务时间

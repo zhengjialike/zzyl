@@ -13,65 +13,27 @@ import lombok.Data;
 @TableName(value ="t_user")
 @Data
 public class User {
-    /**
-     * 
-     */
-    @TableId
+    @TableId(type = IdType.AUTO)
     private Integer id;
 
-    /**
-     * 
-     */
     private String account;
 
-    /**
-     * 
-     */
     private String upwd;
 
-    /**
-     * 
-     */
     private String realname;
 
-    /**
-     * 
-     */
+    private Integer deptId;
+
+    private Integer positionId;
+
     private String email;
 
-    /**
-     * 
-     */
-    private String department;
-
-    /**
-     * 
-     */
-    private String job;
-
-    /**
-     * 
-     */
-    private String role;
-
-    /**
-     * 
-     */
     private String phone;
 
-    /**
-     * 
-     */
     private String sex;
 
-    /**
-     * 
-     */
     private Integer islock;
 
-    /**
-     *
-     */
     private String image;
 
     @TableField(exist = false)

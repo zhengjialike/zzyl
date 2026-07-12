@@ -8,40 +8,60 @@ import java.util.Date;
 import lombok.Data;
 
 /**
- * 客户（家属）与老人的绑定关系表
- * @TableName t_family_binding
+ * 
+ * @TableName t_dept
  */
-@TableName(value ="t_family_binding")
+@TableName(value ="t_dept")
 @Data
-public class FamilyBinding {
+public class Dept {
     /**
-     * 关系ID（主键）
+     * 
      */
     @TableId(type = IdType.AUTO)
     private Integer id;
 
     /**
-     * 客户ID（关联t_customer.id，即家属）
+     * 
      */
-    private Integer customerId;
+    private String deptName;
 
     /**
-     * 老人ID（关联t_elderly.id，即被绑定的老人）
+     * 
      */
-    private Integer elderlyId;
+    private Integer parentId;
 
     /**
-     * 称呼/关系（如：父亲、母亲、爷爷）
+     * 
      */
-    private String relationship;
+    private Integer sort;
 
     /**
-     * 创建时间
+     * 
+     */
+    private String leader;
+
+    /**
+     * 
+     */
+    private Integer status;
+
+    /**
+     * 
+     */
+    private String description;
+
+    /**
+     * 
      */
     private Date createTime;
 
     /**
-     * 更新时间
+     * 
      */
     private Date updateTime;
+
+    /**
+     * 
+     */
+    private Integer delFlag;
 }

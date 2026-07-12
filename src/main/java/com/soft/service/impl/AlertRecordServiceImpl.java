@@ -174,12 +174,12 @@ public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, Alert
     /**
      * 根据设备ID获取设备信息
      */
-    private Device getDeviceById(String deviceId) {
-        if (!StringUtils.hasText(deviceId)) {
+    private Device getDeviceById(Integer deviceId) {
+        if (deviceId == null) {
             return null;
         }
         try {
-            return deviceService.getById(Integer.parseInt(deviceId));
+            return deviceService.getById(deviceId);
         } catch (Exception e) {
             return null;
         }

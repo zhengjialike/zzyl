@@ -20,11 +20,11 @@ public interface RefundService extends IService<Refund> {
     /**
      * 获取退款详情
      */
-    Map<String, Object> getRefundDetail(Long refundId);
+    Map<String, Object> getRefundDetail(Integer refundId);
 
     /**
      * 创建退款记录（从订单申请退款时调用）
      */
-    Map<String, Object> createRefundRecord(Long orderId, String reason);
+    Map<String, Object> createRefundRecord(Integer orderId, String reason);
 
 }

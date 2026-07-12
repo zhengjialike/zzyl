@@ -4,7 +4,7 @@ import com.soft.dto.CheckOutPageDto;
 import com.soft.dto.StepSubmitDto;
 import com.soft.pojo.ApplyLog;
 import com.soft.pojo.CheckOut;
-import com.soft.pojo.Elder;
+import com.soft.pojo.Elderly;
 import com.soft.pojo.Contract;
 import com.soft.service.CheckOutService;
 import com.soft.service.BillService;
@@ -37,7 +37,7 @@ public class CheckOutController {
     }
 
     @RequestMapping("/checkOutEligibleElders")
-    public List<Elder> eligibleElders(@RequestBody(required = false) Map<String, String> payload) {
+    public List<Elderly> eligibleElders(@RequestBody(required = false) Map<String, String> payload) {
         String keyword = payload == null ? null : payload.get("keyword");
         return checkOutService.queryEligibleElders(keyword);
     }

@@ -27,7 +27,7 @@ public class OrderController {
      */
     @PostMapping("/cancel")
     public Map<String, Object> cancel(@RequestBody Map<String, Object> params) {
-        Long orderId = Long.valueOf(params.get("orderId").toString());
+        Integer orderId = (Integer) params.get("orderId");
         String reason = params.get("reason") != null ? params.get("reason").toString() : null;
         return orderService.cancelOrder(orderId, reason);
     }
@@ -37,7 +37,7 @@ public class OrderController {
      */
     @PostMapping("/refund")
     public Map<String, Object> refund(@RequestBody Map<String, Object> params) {
-        Long orderId = Long.valueOf(params.get("orderId").toString());
+        Integer orderId = Integer.valueOf(params.get("orderId").toString());
         String reason = params.get("reason") != null ? params.get("reason").toString() : null;
         return orderService.refundOrder(orderId, reason);
     }
@@ -46,7 +46,7 @@ public class OrderController {
      * 获取订单详情
      */
     @GetMapping("/getDetail")
-    public Map<String, Object> getDetail(@RequestParam("orderId") Long orderId) {
+    public Map<String, Object> getDetail(@RequestParam("orderId") Integer orderId) {
         return orderService.getOrderDetail(orderId);
     }
 }

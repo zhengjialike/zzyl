@@ -1,5 +1,6 @@
 package com.soft.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.soft.pojo.FamilyMember;
 import com.soft.pojo.Bill;
 import lombok.Data;
@@ -9,6 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class StepSubmitDto {
     private Integer id;
     private Integer step;

@@ -21,9 +21,9 @@ public class AlertRecord {
     private Integer id;
 
     /**
-     * 设备ID（关联t_device.device_id）
+     * 设备ID（关联t_device.id）
      */
-    private String deviceId;
+    private Integer deviceId;
 
     /**
      * 触发的报警规则ID（关联t_alert_rule.id）

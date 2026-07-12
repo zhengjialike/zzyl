@@ -100,7 +100,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     @Override
-    public Map<String, Object> cancelOrder(Long orderId, String reason) {
+    public Map<String, Object> cancelOrder(Integer orderId, String reason) {
         Map<String, Object> result = new HashMap<>();
 
         try {
@@ -134,7 +134,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     @Override
-    public Map<String, Object> refundOrder(Long orderId, String reason) {
+    public Map<String, Object> refundOrder(Integer orderId, String reason) {
         Map<String, Object> result = new HashMap<>();
 
         try {
@@ -187,7 +187,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     @Override
-    public Map<String, Object> getOrderDetail(Long orderId) {
+    public Map<String, Object> getOrderDetail(Integer orderId) {
         Map<String, Object> result = new HashMap<>();
 
         try {
@@ -227,13 +227,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     // ==================== 辅助方法 ====================
 
-    private String getElderlyName(Long elderlyId) {
+    private String getElderlyName(Integer elderlyId) {
         if (elderlyId == null) return "-";
         Elderly elderly = elderlyService.getById(elderlyId);
         return elderly != null ? elderly.getRealName() : "-";
     }
 
-    private String getBedNumber(Long elderlyId) {
+    private String getBedNumber(Integer elderlyId) {
         if (elderlyId == null) return "-";
         // 通过老人ID查找床位
         List<Bed> beds = bedService.list();
@@ -245,19 +245,19 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return "-";
     }
 
-    private String getNursingItemName(Long nursingItemId) {
+    private String getNursingItemName(Integer nursingItemId) {
         if (nursingItemId == null) return "-";
         NursingItem item = nursingItemService.getById(nursingItemId);
         return item != null ? item.getItemname() : "-";
     }
 
-    private String getCustomerName(Long customerId) {
+    private String getCustomerName(Integer customerId) {
         if (customerId == null) return "-";
         Customer customer = customerService.getById(customerId);
         return customer != null ? customer.getRealName(): "-";
     }
 
-    private String getCustomerPhone(Long customerId) {
+    private String getCustomerPhone(Integer customerId) {
         if (customerId == null) return "-";
         Customer customer = customerService.getById(customerId);
         return customer != null ? customer.getPhone() : "-";

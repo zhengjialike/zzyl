@@ -51,7 +51,7 @@ public class AlertRuleController {
             return result;
         }
 
-        if (alertRule.getDeviceId() == null || alertRule.getDeviceId().trim().isEmpty()) {
+        if (alertRule.getDeviceId() == null || alertRule.getDeviceId() == 0) {
             result.put("code", 400);
             result.put("msg", "关联设备不能为空");
             return result;

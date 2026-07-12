@@ -204,14 +204,14 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
             
             // 添加"全部设备"选项（值为0）
             Map<String, Object> allDevicesOption = new HashMap<>();
-            allDevicesOption.put("deviceId", "0");
+            allDevicesOption.put("deviceId", 0);
             allDevicesOption.put("deviceName", "全部设备");
             deviceList.add(allDevicesOption);
             
             // 添加具体设备
             for (Device device : devices) {
                 Map<String, Object> deviceMap = new HashMap<>();
-                deviceMap.put("deviceId", device.getId().toString());
+                deviceMap.put("deviceId", device.getId());
                 deviceMap.put("deviceName", device.getDeviceName());
                 deviceList.add(deviceMap);
             }
@@ -243,13 +243,13 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
     /**
      * 根据设备ID获取设备名称
      */
-    private String getDeviceName(String deviceId) {
-        if (!StringUtils.hasText(deviceId) || "0".equals(deviceId)) {
+    private String getDeviceName(Integer deviceId) {
+        if (deviceId == null || deviceId == 0) {
             return "全部设备";
         }
         
         try {
-            Device device = deviceService.getById(Integer.parseInt(deviceId));
+            Device device = deviceService.getById(deviceId);
             return device != null ? device.getDeviceName() : "-";
         } catch (Exception e) {
             return "-";

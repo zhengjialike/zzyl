@@ -17,27 +17,30 @@ public class Bill {
     @TableId(type = IdType.AUTO)
     private Integer id;
     private String billNo;
-    private Integer elderId;
-    private String elderName;
-    private String billType;
-    private String billMonth;
-    @TableField("item_name")
-    private String nursingItemName;
+    private Integer elderlyId;
+    private BigDecimal billAmount;
     private BigDecimal payableAmount;
-    private BigDecimal paidAmount;
-    private BigDecimal refundableAmount;
-    private BigDecimal actualRefund;
-    private String status;
-    private String payCategory;
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate startDate;
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate endDate;
-    private Integer checkOutId;
-    private String adjustRemark;
-    @TableField("refundable_deposit")
-    private BigDecimal refundableDeposit;
-    private BigDecimal prepaidAmount;
+    private String billMonth;
+    private Integer status;
+    private String billType;
+    private String paymentMethod;
+    private String paymentVoucher;
+    private String paymentRemark;
+    private String cancelReason;
+    private String creator;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime payDeadline;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updateTime;
+    private Integer delFlag;
+    private BigDecimal paidAmount;
+    private BigDecimal depositAmount;
+    private BigDecimal prepaidAmount;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate billStart;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate billEnd;
+    private Integer totalDays;
 }

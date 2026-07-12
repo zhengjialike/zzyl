@@ -9,5 +9,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2026-07-11 11:02:31
 */
 public interface ElderlyService extends IService<Elderly> {
-
+    Elderly queryByIdCard(String idCard);
 }

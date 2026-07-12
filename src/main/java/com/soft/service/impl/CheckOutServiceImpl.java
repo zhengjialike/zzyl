@@ -7,15 +7,8 @@ import com.soft.dto.CheckOutPageDto;
 import com.soft.dto.StepSubmitDto;
 import com.soft.mapper.CheckOutMapper;
 import com.soft.mapper.ContractMapper;
-import com.soft.pojo.ApplyLog;
-import com.soft.pojo.Bill;
-import com.soft.pojo.CheckOut;
-import com.soft.pojo.Contract;
-import com.soft.pojo.Elder;
-import com.soft.service.ApplyLogService;
-import com.soft.service.BillService;
-import com.soft.service.CheckOutService;
-import com.soft.service.ElderService;
+import com.soft.pojo.*;
+import com.soft.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +32,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     @Autowired private ContractMapper contractMapper;
     @Autowired private ApplyLogService applyLogService;
     @Autowired private BillService billService;
-    @Autowired private ElderService elderService;
+    @Autowired private ElderlyService elderlyService;
 
     @Override
     public Map<String, Object> pageList(CheckOutPageDto dto) {
@@ -60,20 +53,20 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     }
 
     @Override
-    public List<Elder> queryEligibleElders(String keyword) {
+    public List<Elderly> queryEligibleElders(String keyword) {
         QueryWrapper<CheckOut> activeWrapper = new QueryWrapper<>();
         activeWrapper.select("elder_id").eq("flow_status", "申请中").isNotNull("elder_id");
         List<Integer> applyingIds = checkOutMapper.selectObjs(activeWrapper).stream()
                 .map(value -> Integer.valueOf(value.toString()))
                 .toList();
-        QueryWrapper<Elder> elderWrapper = new QueryWrapper<>();
+        QueryWrapper<Elderly> elderWrapper = new QueryWrapper<>();
         elderWrapper.eq("status", 1);
         if (!applyingIds.isEmpty()) elderWrapper.notIn("id", applyingIds);
         if (StringUtils.hasText(keyword)) {
-            elderWrapper.and(wrapper -> wrapper.like("name", keyword).or().eq("id_card", keyword));
+            elderWrapper.and(wrapper -> wrapper.like("real_name", keyword).or().eq("id_card", keyword));
         }
-        elderWrapper.orderByAsc("name");
-        return elderService.list(elderWrapper);
+        elderWrapper.orderByAsc("real_name");
+        return elderlyService.list(elderWrapper);
     }
 
     @Override
@@ -92,20 +85,20 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     public Map<String, Object> startApply(StepSubmitDto dto, String applicant) {
         Map<String, Object> result = new HashMap<>();
         result.put("code", 400);
-        Elder elder = dto.getElderId() == null ? elderService.queryByIdCard(dto.getIdCard()) : elderService.getById(dto.getElderId());
-        if (elder == null) { result.put("msg", "请选择有效的在住老人"); return result; }
-        if (!Integer.valueOf(1).equals(elder.getStatus())) { result.put("msg", "该老人当前不是在住状态，不能申请退住"); return result; }
+        Elderly elderly = dto.getElderId() == null ? elderlyService.queryByIdCard(dto.getIdCard()) : elderlyService.getById(dto.getElderId());
+        if (elderly == null) { result.put("msg", "请选择有效的在住老人"); return result; }
+        if (!Integer.valueOf(1).equals(elderly.getStatus())) { result.put("msg", "该老人当前不是在住状态，不能申请退住"); return result; }
         QueryWrapper<CheckOut> duplicateWrapper = new QueryWrapper<>();
-        duplicateWrapper.eq("elder_id", elder.getId()).eq("flow_status", "申请中");
+        duplicateWrapper.eq("elder_id", elderly.getId()).eq("flow_status", "申请中");
         if (checkOutMapper.selectCount(duplicateWrapper) > 0) { result.put("msg", "该老人已有正在办理的退住申请"); return result; }
         if (dto.getCheckOutDate() == null || !StringUtils.hasText(dto.getCheckoutReason())) {
             result.put("msg", "请填写退住日期和退住原因"); return result;
         }
         CheckOut co = new CheckOut();
         co.setBillNo(generateBillNo("TZ"));
-        co.setElderId(elder.getId());
-        co.setElderName(elder.getName());
-        co.setIdCard(elder.getIdCard());
+        co.setElderId(elderly.getId());
+        co.setElderName(elderly.getRealName());
+        co.setIdCard(elderly.getIdCard());
         co.setCheckOutDate(dto.getCheckOutDate());
         co.setReason(dto.getCheckoutReason());
         co.setRemark(dto.getRemark());
@@ -158,7 +151,6 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
             case 4: // 调整账单
                 if (dto.getBills() != null) {
                     dto.getBills().forEach(b -> {
-                        b.setCheckOutId(co.getId());
                         if (b.getId() != null) billService.updateById(b);
                         else billService.save(b);
                     });
@@ -187,10 +179,10 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
                 co.setFlowStatus("已完成");
                 co.setCurrentStep(6);
                 if (co.getElderId() != null) {
-                    Elder elder = elderService.getById(co.getElderId());
-                    if (elder != null) {
-                        elder.setStatus(2);
-                        elderService.updateById(elder);
+                    Elderly elderly = elderlyService.getById(co.getElderId());
+                    if (elderly != null) {
+                        elderly.setStatus(2);
+                        elderlyService.updateById(elderly);
                     }
                 }
                 break;

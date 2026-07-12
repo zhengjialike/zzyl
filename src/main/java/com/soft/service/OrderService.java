@@ -20,16 +20,16 @@ public interface OrderService extends IService<Order> {
     /**
      * 取消订单
      */
-    Map<String, Object> cancelOrder(Long orderId, String reason);
+    Map<String, Object> cancelOrder(Integer orderId, String reason);
 
     /**
      * 申请退款
      */
-    Map<String, Object> refundOrder(Long orderId, String reason);
+    Map<String, Object> refundOrder(Integer orderId, String reason);
 
     /**
      * 获取订单详情
      */
-    Map<String, Object> getOrderDetail(Long orderId);
+    Map<String, Object> getOrderDetail(Integer orderId);
 
 }

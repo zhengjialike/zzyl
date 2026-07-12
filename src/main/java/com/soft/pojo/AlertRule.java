@@ -41,7 +41,7 @@ public class AlertRule {
     /**
      * 关联设备ID（0表示所有设备，非0表示指定设备）
      */
-    private String deviceId;
+    private Integer deviceId;
 
     /**
      * 运算符（如：>、<、=、!=）

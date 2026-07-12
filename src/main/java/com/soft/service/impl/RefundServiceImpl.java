@@ -89,7 +89,7 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
     }
 
     @Override
-    public Map<String, Object> getRefundDetail(Long refundId) {
+    public Map<String, Object> getRefundDetail(Integer refundId) {
         Map<String, Object> result = new HashMap<>();
 
         try {
@@ -129,7 +129,7 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
     }
 
     @Override
-    public Map<String, Object> createRefundRecord(Long orderId, String reason) {
+    public Map<String, Object> createRefundRecord(Integer orderId, String reason) {
         Map<String, Object> result = new HashMap<>();
 
         try {
@@ -181,13 +181,13 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
         return "TK" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
     }
 
-    private String getCustomerName(Long customerId) {
+    private String getCustomerName(Integer customerId) {
         if (customerId == null) return "-";
         // 这里应该调用CustomerService，但为避免循环依赖，暂时返回默认值
         return "用户-" + customerId;
     }
 
-    private String getOrderStatusText(Long orderId) {
+    private String getOrderStatusText(Integer orderId) {
         if (orderId == null) return "-";
         Order order = orderService.getById(orderId);
         if (order == null) return "-";

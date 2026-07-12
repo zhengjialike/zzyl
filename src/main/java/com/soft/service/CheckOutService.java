@@ -5,7 +5,7 @@ import com.soft.dto.CheckOutPageDto;
 import com.soft.dto.StepSubmitDto;
 import com.soft.pojo.ApplyLog;
 import com.soft.pojo.CheckOut;
-import com.soft.pojo.Elder;
+import com.soft.pojo.Elderly;
 import com.soft.pojo.Contract;
 
 import java.util.List;
@@ -17,7 +17,7 @@ public interface CheckOutService extends IService<CheckOut> {
 
     Map<String, Object> startApply(StepSubmitDto dto, String applicant);
 
-    List<Elder> queryEligibleElders(String keyword);
+    List<Elderly> queryEligibleElders(String keyword);
 
     List<Contract> queryActiveContracts(Integer checkOutId);
 

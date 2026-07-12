@@ -27,7 +27,7 @@ public class RefundController {
      * 获取退款详情
      */
     @GetMapping("/getDetail")
-    public Map<String, Object> getDetail(@RequestParam("refundId") Long refundId) {
+    public Map<String, Object> getDetail(@RequestParam("refundId") Integer refundId) {
         return refundService.getRefundDetail(refundId);
     }
 
@@ -35,7 +35,7 @@ public class RefundController {
      * 创建退款记录
      */
     @PostMapping("/create")
-    public Map<String, Object> create(@RequestParam("orderId") Long orderId,
+    public Map<String, Object> create(@RequestParam("orderId") Integer orderId,
                                      @RequestParam(value = "reason", required = false) String reason) {
         return refundService.createRefundRecord(orderId, reason);
     }

@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.soft.dto.UserDto;
 import com.soft.dto.UserLineDto;
 import com.soft.dto.UserPwdDto;
+import com.soft.mapper.UserMapper;
 import com.soft.pojo.User;
 import com.soft.service.UserService;
-import com.soft.mapper.UserMapper;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,27 +16,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
-* @author 12
-* @description 针对表【t_user】的数据库操作Service实现
-* @createDate 2026-07-06 09:23:02
-*/
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User>
-    implements UserService{
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
     @Autowired
     private UserMapper userMapper;
 
     @Override
     public Map<String, Object> queryUserService(UserDto userDto, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
-        result.put("code", 400);
+        result.put("msg", "身份验证失败......");
+        
         String account = userDto.getAccount();
-
-        // 创建 QueryWrapper 对象封装查询条件
         QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.eq("account", account); // where account = ?
-
+        wrapper.eq("account", account);
+        
         // 根据账号查询数据
         List<User> users = userMapper.selectList(wrapper);
         if (users == null || users.isEmpty()) {
@@ -52,10 +46,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             result.put("msg", "输入密码错误......");
             return result;
         }
-        //身份验证通过，记录登录信息
+        
+        //身份验证通过，记录登录信息（包含完整字段）
         UserLineDto userLineDto = new UserLineDto();
         userLineDto.setId(user.getId());
         userLineDto.setUname(user.getRealname());
+        userLineDto.setSex(user.getSex());
+        userLineDto.setPhone(user.getPhone());
+        userLineDto.setImage(user.getImage());
+        userLineDto.setDeptId(user.getDeptId());
+        userLineDto.setPositionId(user.getPositionId());
+        userLineDto.setAccount(user.getAccount());
+        userLineDto.setEmail(user.getEmail());
+        
         session.setAttribute("online", userLineDto);
 
         result.put("code", 200);

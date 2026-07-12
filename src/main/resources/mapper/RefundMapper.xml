@@ -5,12 +5,12 @@
 <mapper namespace="com.soft.mapper.RefundMapper">
 
     <resultMap id="BaseResultMap" type="com.soft.pojo.Refund">
-            <id property="id" column="id" jdbcType="BIGINT"/>
+            <id property="id" column="id" jdbcType="INTEGER"/>
             <result property="refundNo" column="refund_no" jdbcType="VARCHAR"/>
-            <result property="orderId" column="order_id" jdbcType="BIGINT"/>
+            <result property="orderId" column="order_id" jdbcType="INTEGER"/>
             <result property="refundAmount" column="refund_amount" jdbcType="DECIMAL"/>
             <result property="status" column="status" jdbcType="TINYINT"/>
-            <result property="customerId" column="customer_id" jdbcType="BIGINT"/>
+            <result property="customerId" column="customer_id" jdbcType="INTEGER"/>
             <result property="refundReason" column="refund_reason" jdbcType="VARCHAR"/>
             <result property="refundChannel" column="refund_channel" jdbcType="VARCHAR"/>
             <result property="refundMethod" column="refund_method" jdbcType="VARCHAR"/>
