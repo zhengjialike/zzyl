@@ -5,7 +5,7 @@ import com.soft.pojo.BedNurse;
 import com.soft.pojo.User;
 import com.soft.pojo.Bed;
 import com.soft.service.BedNurseService;
-import com.zzyl.mapper.UserMapper;
+import com.soft.mapper.UserMapper;
 import com.soft.mapper.BedMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +20,7 @@ public class BedNurseController {
     @Autowired private BedMapper bedMapper;
 
     @RequestMapping("/bedNursePage")
-    public Map<String, Object> pageList(int pageNum, int pageSize) {
+    public Map<String, Object> pageList(@RequestParam(defaultValue = "1") int pageNum, @RequestParam(defaultValue = "50") int pageSize) {
         LambdaQueryWrapper<BedNurse> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByAsc(BedNurse::getBedId);
         List<BedNurse> records = bedNurseService.list(wrapper);
