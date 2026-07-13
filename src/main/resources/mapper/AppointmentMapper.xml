@@ -6,23 +6,19 @@
 
     <resultMap id="BaseResultMap" type="com.soft.pojo.Appointment">
             <id property="id" column="id" jdbcType="INTEGER"/>
-            <result property="appointmentType" column="appointment_type" jdbcType="VARCHAR"/>
-            <result property="visitorName" column="visitor_name" jdbcType="VARCHAR"/>
-            <result property="visitorPhone" column="visitor_phone" jdbcType="VARCHAR"/>
-            <result property="elderName" column="elder_name" jdbcType="VARCHAR"/>
-            <result property="appointmentTime" column="appointment_time" jdbcType="TIMESTAMP"/>
-            <result property="status" column="status" jdbcType="TINYINT"/>
-            <result property="arrivalTime" column="arrival_time" jdbcType="TIMESTAMP"/>
-            <result property="creator" column="creator" jdbcType="VARCHAR"/>
-            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
-            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
-            <result property="remark" column="remark" jdbcType="VARCHAR"/>
+            <result property="appuser" column="appuser" jdbcType="VARCHAR"/>
+            <result property="phone" column="phone" jdbcType="VARCHAR"/>
+            <result property="olduser" column="olduser" jdbcType="VARCHAR"/>
+            <result property="apptime" column="apptime" jdbcType="TIMESTAMP"/>
+            <result property="islock" column="islock" jdbcType="VARCHAR"/>
+            <result property="createuser" column="createuser" jdbcType="VARCHAR"/>
+            <result property="createtime" column="createtime" jdbcType="TIMESTAMP"/>
+            <result property="visittime" column="visittime" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,appointment_type,visitor_name,
-        visitor_phone,elder_name,appointment_time,
-        status,arrival_time,creator,
-        create_time,update_time,remark
+        id,appuser,phone,
+        olduser,apptime,islock,
+        createuser,createtime,visittime
     </sql>
 </mapper>

@@ -1,141 +1,83 @@
 package com.soft.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.soft.dto.AppointmentQueryDto;
-import com.soft.dto.AppointmentResponseDto;
-import com.soft.dto.ArrivalConfirmDto;
+import com.soft.dto.AppointmentRecordDto;
 import com.soft.pojo.Appointment;
 import com.soft.service.AppointmentService;
 import com.soft.mapper.AppointmentMapper;
-import com.soft.service.VisitRecordService;
-import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
-* @author 12
-* @description 针对表【t_appointment(预约记录表)】的数据库操作Service实现
-* @createDate 2026-07-09 23:23:59
-*/
+ * @author Teacher
+ * @description 针对表【t_appointment】的数据库操作Service实现
+ * @createDate 2026-07-11 09:36:45
+ */
 @Service
 public class AppointmentServiceImpl extends ServiceImpl<AppointmentMapper, Appointment>
-    implements AppointmentService{
+        implements AppointmentService{
 
-    private final AppointmentMapper appointmentMapper;
-    private final VisitRecordService visitRecordService;
-
-
-    public AppointmentServiceImpl(AppointmentMapper appointmentMapper,
-                                  VisitRecordService visitRecordService) {
-        this.appointmentMapper = appointmentMapper;
-        this.visitRecordService = visitRecordService;
-    }
-
+    @Autowired
+    private AppointmentMapper appointmentMapper;
     @Override
-    public Page<AppointmentResponseDto> queryAppointments(AppointmentQueryDto queryDto) {
-        LambdaQueryWrapper<Appointment> wrapper = new LambdaQueryWrapper<>();
+    public Map<String, Object> queryAppointmentListService(AppointmentRecordDto dto) {
+        Page<Appointment> page=new Page<>(dto.getPageNum(),dto.getPageSize());
+        //创建wrapper封装where条件
+        QueryWrapper<Appointment> wrapper=new QueryWrapper<>();
+        String appuser = dto.getAppuser();
+        String phone = dto.getPhone();
+        String islock = dto.getIslock();
+        Timestamp starttime = dto.getStarttime();
+        Timestamp endtime = dto.getEndtime();
+        wrapper.eq(!StringUtils.isBlank(appuser),"appuser",appuser);
+        wrapper.eq(!StringUtils.isBlank(phone),"phone",phone);
+        wrapper.eq(!StringUtils.isBlank(islock),"islock",islock);
+        wrapper.between(starttime!=null && endtime!=null
+                ,"apptime",starttime,endtime);
 
-        if (queryDto.getVisitorName() != null && !queryDto.getVisitorName().isEmpty()) {
-            wrapper.like(Appointment::getVisitorName, queryDto.getVisitorName());
-        }
+        List<Appointment> appointments = appointmentMapper.selectList(page, wrapper);
 
-        if (queryDto.getVisitorPhone() != null && !queryDto.getVisitorPhone().isEmpty()) {
-            wrapper.eq(Appointment::getVisitorPhone, queryDto.getVisitorPhone());
-        }
+        //遍历appointments，检查预约是否已经过期
+        appointments.forEach(item->{
+            //获得系统当前时间
+            LocalDateTime now=LocalDateTime.now();
+            Date apptime = item.getApptime();
+            LocalDateTime appointmentTiem = apptime.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDateTime();
 
-        if (queryDto.getStatus() != null) {
-            wrapper.eq(Appointment::getStatus, queryDto.getStatus());
-        }
+            long between = ChronoUnit.HOURS.between(now, appointmentTiem);
+            System.out.println("between="+between);
+            if(between<=1 && item.getIslock().equals("待上门")){
+                //执行update操作
+                Appointment app=new Appointment();
+                app.setId(item.getId());
+                app.setIslock("已过期");
+                appointmentMapper.updateById(app);
+                item.setIslock("已过期");
+            }
 
-        if (queryDto.getStartTime() != null && queryDto.getEndTime() != null) {
-            wrapper.between(Appointment::getAppointmentTime, queryDto.getStartTime(), queryDto.getEndTime());
-        }
+        });
+        Map<String, Object> result=new HashMap<>();
+        result.put("total",page.getTotal());
+        result.put("appointments",appointments);
 
-        if (queryDto.getAppointmentType() != null && !queryDto.getAppointmentType().isEmpty()) {
-            wrapper.eq(Appointment::getAppointmentType, queryDto.getAppointmentType());
-        }
 
-        wrapper.orderByDesc(Appointment::getAppointmentTime);
 
-        Page<Appointment> page = new Page<>(queryDto.getPageNum(), queryDto.getPageSize());
-        Page<Appointment> appointmentPage = appointmentMapper.selectPage(page, wrapper);
-
-        Page<AppointmentResponseDto> resultPage = new Page<>(appointmentPage.getCurrent(),
-                appointmentPage.getSize(), appointmentPage.getTotal());
-
-        List<AppointmentResponseDto> dtoList = appointmentPage.getRecords().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-
-        resultPage.setRecords(dtoList);
-        return resultPage;
+        return result;
     }
-
-    @Override
-    public boolean cancelAppointment(Integer appointmentId) {
-        Appointment appointment = appointmentMapper.selectById(appointmentId);
-        if (appointment == null || appointment.getStatus() != 0) {
-            return false;
-        }
-
-        appointment.setStatus(2);
-        return appointmentMapper.updateById(appointment) > 0;
-    }
-
-    @Override
-    public Appointment getAppointmentById(Integer id) {
-        return appointmentMapper.selectById(id);
-    }
-
-    @Override
-    @org.springframework.transaction.annotation.Transactional
-    public boolean confirmArrival(ArrivalConfirmDto confirmDto) {
-        Appointment appointment = appointmentMapper.selectById(confirmDto.getAppointmentId());
-        if (appointment == null) {
-            return false;
-        }
-
-        String visitType = appointment.getAppointmentType().replace("预约", "来访");
-
-        boolean success = visitRecordService.createVisitFromAppointment(
-                appointment.getId(),
-                visitType,
-                appointment.getVisitorName(),
-                appointment.getVisitorPhone(),
-                appointment.getElderName(),
-                confirmDto.getArrivalTime(),
-                appointment.getCreator()
-        );
-
-        return success;
-    }
-
-    private AppointmentResponseDto convertToDto(Appointment appointment) {
-        AppointmentResponseDto dto = new AppointmentResponseDto();
-        BeanUtils.copyProperties(appointment, dto);
-        dto.setStatusText(getStatusText(appointment.getStatus()));
-        return dto;
-    }
-
-    private String getStatusText(Integer status) {
-        switch (status) {
-            case 0:
-                return "待上门";
-            case 1:
-                return "已完成";
-            case 2:
-                return "已取消";
-            case 3:
-                return "已过期";
-            default:
-                return "未知";
-        }
-    }
-
 }
 
 

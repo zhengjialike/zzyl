@@ -12,6 +12,8 @@ spring:
     time-zone: Asia/Shanghai
     serialization:
       write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
   servlet:
     multipart:
       max-file-size: 100MB

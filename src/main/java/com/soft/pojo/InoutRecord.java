@@ -9,11 +9,11 @@ import lombok.Data;
 
 /**
  * 
- * @TableName t_appointment
+ * @TableName t_inout_record
  */
-@TableName(value ="t_appointment")
+@TableName(value ="t_inout_record")
 @Data
-public class Appointment {
+public class InoutRecord {
     /**
      * 
      */
@@ -23,27 +23,22 @@ public class Appointment {
     /**
      * 
      */
-    private String appuser;
+    private String ordercode;
 
     /**
      * 
      */
-    private String phone;
+    private String oldname;
 
     /**
      * 
      */
-    private String olduser;
+    private String cardid;
 
     /**
      * 
      */
-    private Date apptime;
-
-    /**
-     * 
-     */
-    private String islock;
+    private Date inouttime;
 
     /**
      * 
@@ -58,5 +53,5 @@ public class Appointment {
     /**
      * 
      */
-    private Date visittime;
+    private String status;
 }

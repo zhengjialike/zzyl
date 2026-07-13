@@ -2,22 +2,22 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.soft.mapper.VisitRecordMapper">
+<mapper namespace="com.soft.mapper.InoutRecordMapper">
 
-    <resultMap id="BaseResultMap" type="com.soft.pojo.VisitRecord">
+    <resultMap id="BaseResultMap" type="com.soft.pojo.InoutRecord">
             <id property="id" column="id" jdbcType="INTEGER"/>
-            <result property="visittype" column="visittype" jdbcType="VARCHAR"/>
-            <result property="visitname" column="visitname" jdbcType="VARCHAR"/>
-            <result property="phone" column="phone" jdbcType="VARCHAR"/>
+            <result property="ordercode" column="ordercode" jdbcType="VARCHAR"/>
             <result property="oldname" column="oldname" jdbcType="VARCHAR"/>
-            <result property="visittime" column="visittime" jdbcType="TIMESTAMP"/>
+            <result property="cardid" column="cardid" jdbcType="VARCHAR"/>
+            <result property="inouttime" column="inouttime" jdbcType="TIMESTAMP"/>
             <result property="createuser" column="createuser" jdbcType="VARCHAR"/>
             <result property="createtime" column="createtime" jdbcType="TIMESTAMP"/>
+            <result property="status" column="status" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,visittype,visitname,
-        phone,oldname,visittime,
-        createuser,createtime
+        id,ordercode,oldname,
+        cardid,inouttime,createuser,
+        createtime,status
     </sql>
 </mapper>

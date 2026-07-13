@@ -9,11 +9,11 @@ import lombok.Data;
 
 /**
  * 
- * @TableName t_appointment
+ * @TableName t_ai_assistant
  */
-@TableName(value ="t_appointment")
+@TableName(value ="t_ai_assistant")
 @Data
-public class Appointment {
+public class AiAssistant {
     /**
      * 
      */
@@ -23,32 +23,7 @@ public class Appointment {
     /**
      * 
      */
-    private String appuser;
-
-    /**
-     * 
-     */
-    private String phone;
-
-    /**
-     * 
-     */
-    private String olduser;
-
-    /**
-     * 
-     */
-    private Date apptime;
-
-    /**
-     * 
-     */
-    private String islock;
-
-    /**
-     * 
-     */
-    private String createuser;
+    private Integer oldid;
 
     /**
      * 
@@ -58,5 +33,15 @@ public class Appointment {
     /**
      * 
      */
-    private Date visittime;
+    private String airesult;
+
+    /**
+     * 
+     */
+    private String aitype;
+
+    /**
+     * 
+     */
+    private String inputmsg;
 }
