@@ -85,11 +85,7 @@ public class VisitRecordController {
     }
 
     private String getCurrentUser(HttpSession session) {
-        Object online = session.getAttribute("online");
-        if (online != null) {
-            com.soft.dto.UserLineDto user = (com.soft.dto.UserLineDto) online;
-            return user.getUname();
-        }
-        return "系统";
+        Object realName = session.getAttribute("realName");
+        return realName != null ? realName.toString() : "系统";
     }
 }

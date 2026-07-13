@@ -1,6 +1,7 @@
 package com.soft.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.soft.dto.CheckOutPageDto;
@@ -260,11 +261,11 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
                         elderlyService.updateById(elderly);
                     }
                     // 退住完成后释放老人占用的床位，供新的入住申请选择。
-                    QueryWrapper<Bed> bedWrapper = new QueryWrapper<>();
-                    bedWrapper.eq("elderly_id", co.getElderId());
-                    for (Bed bed : bedMapper.selectList(bedWrapper)) {
-                        bed.setElderlyId(null); bed.setStatus(0); bedMapper.updateById(bed);
-                    }
+                    UpdateWrapper<Bed> releaseBed = new UpdateWrapper<>();
+                    releaseBed.eq("elderly_id", co.getElderId())
+                            .set("elderly_id", null)
+                            .set("status", 0);
+                    bedMapper.update(null, releaseBed);
                 }
                 break;
             default:

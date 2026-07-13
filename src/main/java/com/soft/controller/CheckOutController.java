@@ -8,7 +8,6 @@ import com.soft.pojo.Elderly;
 import com.soft.pojo.Contract;
 import com.soft.service.CheckOutService;
 import com.soft.service.BillService;
-import com.soft.dto.UserLineDto;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,12 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 退住管理 HTTP 接口。
- *
- * <p>退住流程共七步，涉及老人、合同、账单和床位等模块。控制器保持轻量，
- * 所有跨表状态变更由 CheckOutService/BillService 完成。</p>
- */
 @RestController
 public class CheckOutController {
 
@@ -91,8 +84,8 @@ public class CheckOutController {
 
     /** 当前操作人只能从服务端登录态读取，避免请求伪造审批人。 */
     private String currentUserName(HttpSession session) {
-        Object online = session.getAttribute("online");
-        if (online instanceof UserLineDto dto) return dto.getUname();
+        Object realName = session.getAttribute("realName");
+        if (realName instanceof String name && !name.isBlank()) return name;
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "登录状态已失效，请重新登录");
     }
 }

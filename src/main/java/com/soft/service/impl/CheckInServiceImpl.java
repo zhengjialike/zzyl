@@ -48,6 +48,8 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     private static final String[] STEP_NAMES = {"申请入住", "入住评估", "入住审批", "入住配置", "签约办理"};
     private static final String[] STEP_ROLES = {"发起人", "评估人", "审批人", "配置人", "发起人"};
     private static final String[] STEP_OPS = {"已发起", "已处理", "已审批", "已配置", "已签约"};
+    private static final List<String> NURSING_LEVELS =
+            List.of("一级护理", "二级护理", "三级护理", "四级护理");
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Autowired private CheckInMapper checkInMapper;
@@ -69,6 +71,21 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         } catch (Exception ex) {
             throw new IllegalArgumentException("表单数据序列化失败", ex);
         }
+    }
+
+    /**
+     * 将历史字母等级转换为当前统一的数字等级。
+     * 原四档顺序为 A特级、A级、B级、C级，对应一级至四级护理。
+     */
+    private static String normalizeNursingLevel(String nursingLevel) {
+        if (!StringUtils.hasText(nursingLevel)) return nursingLevel;
+        return switch (nursingLevel.trim()) {
+            case "A特级", "A特级护理", "特级护理等级" -> "一级护理";
+            case "A级", "A级护理" -> "二级护理";
+            case "B级", "B级护理" -> "三级护理";
+            case "C级", "C级护理", "D级", "D级护理" -> "四级护理";
+            default -> nursingLevel.trim();
+        };
     }
 
     /**
@@ -117,7 +134,9 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         if (dto.getEvalLevel() != null) target.setEvalLevel(dto.getEvalLevel());
         if (dto.getLevelChangeReason() != null) target.setLevelChangeReason(toJson(dto.getLevelChangeReason()));
         if (dto.getBedNo() != null) target.setBedNo(dto.getBedNo());
-        if (dto.getNursingLevel() != null) target.setNursingLevel(dto.getNursingLevel());
+        if (dto.getNursingLevel() != null) {
+            target.setNursingLevel(normalizeNursingLevel(dto.getNursingLevel()));
+        }
         if (dto.getAdvisor() != null) target.setAdvisor(dto.getAdvisor());
         if (dto.getStartDate() != null) target.setStartDate(dto.getStartDate());
         if (dto.getEndDate() != null) target.setEndDate(dto.getEndDate());
@@ -150,6 +169,8 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         }
         wrapper.orderByDesc("create_time");
         Page<CheckIn> resultPage = checkInMapper.selectPage(page, wrapper);
+        resultPage.getRecords().forEach(item ->
+                item.setNursingLevel(normalizeNursingLevel(item.getNursingLevel())));
         Map<String, Object> result = new HashMap<>();
         result.put("list", resultPage.getRecords());
         result.put("total", resultPage.getTotal());
@@ -270,6 +291,11 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
                         || dto.getFeeStartDate() == null || dto.getFeeEndDate() == null) {
                     result.put("msg", "请完整填写入住配置和费用期限"); return result;
                 }
+                dto.setNursingLevel(normalizeNursingLevel(dto.getNursingLevel()));
+                if (!NURSING_LEVELS.contains(dto.getNursingLevel())) {
+                    result.put("msg", "护理等级必须为一级护理、二级护理、三级护理或四级护理");
+                    return result;
+                }
                 // 床位占用和预生成合同与入住单更新处于同一事务，任一步失败都会整体回滚。
                 bindBed(checkIn, dto.getBedNo());
                 copyWithSerialize(dto, checkIn);
@@ -347,10 +373,12 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         wrapper.eq("check_in_id", checkIn.getId()).last("LIMIT 1");
         Contract contract = contractMapper.selectOne(wrapper);
         if (contract != null) {
-            contract.setContractName(checkIn.getContractName());
-            contract.setCreator(creator);
-            contract.setRemark(null);
-            contractMapper.updateById(contract);
+            UpdateWrapper<Contract> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", contract.getId())
+                    .set("contract_name", checkIn.getContractName())
+                    .set("creator", creator)
+                    .set("remark", null);
+            contractMapper.update(null, updateWrapper);
         }
     }
 
@@ -393,6 +421,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     public CheckIn queryDetail(Integer id) {
         CheckIn detail = checkInMapper.selectById(id);
         if (detail == null) return null;
+        detail.setNursingLevel(normalizeNursingLevel(detail.getNursingLevel()));
         QueryWrapper<Contract> wrapper = new QueryWrapper<>();
         wrapper.eq("check_in_id", id).last("LIMIT 1");
         Contract contract = contractMapper.selectOne(wrapper);

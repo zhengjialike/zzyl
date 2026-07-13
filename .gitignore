@@ -19,6 +19,10 @@ target/
 *.iml
 *.ipr
 
+### Local debug artifacts ###
+/.playwright-mcp/
+/backend-run*.log
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

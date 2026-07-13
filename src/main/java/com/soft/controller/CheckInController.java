@@ -7,7 +7,6 @@ import com.soft.pojo.Bed;
 import com.soft.pojo.CheckIn;
 import com.soft.service.CheckInService;
 import com.soft.service.FamilyMemberService;
-import com.soft.dto.UserLineDto;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -86,8 +85,8 @@ public class CheckInController {
      * 未登录时返回 401，不使用默认用户名生成无责任人的记录。
      */
     private String currentUserName(HttpSession session) {
-        Object online = session.getAttribute("online");
-        if (online instanceof UserLineDto dto) return dto.getUname();
+        Object realName = session.getAttribute("realName");
+        if (realName instanceof String name && !name.isBlank()) return name;
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "登录状态已失效，请重新登录");
     }
 }
