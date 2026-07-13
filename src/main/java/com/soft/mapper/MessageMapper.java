@@ -1,7 +1,7 @@
-package com.zzyl.mapper;
+package com.soft.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.zzyl.entity.Message;
+import com.soft.pojo.Message;
 
 public interface MessageMapper extends BaseMapper<Message> {
 }
