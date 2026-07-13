@@ -41,7 +41,7 @@
         SELECT COUNT(*) FROM t_order o
         INNER JOIN t_customer c ON o.customer_id = c.id
         WHERE c.phone = #{phone}
-          AND o.status IN (1, 2)
+          AND o.status IN (1, 3)
     </select>
 
     <!-- 查询客户绑定的所有老人姓名 -->

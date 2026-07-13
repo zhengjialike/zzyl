@@ -293,7 +293,9 @@ public class DeviceController {
      * 获取设备的报警记录
      */
     @GetMapping("/getDeviceAlertRecords")
-    public Map<String, Object> getDeviceAlertRecords(@RequestParam("deviceId") String deviceId) {
+    public Map<String, Object> getDeviceAlertRecords(
+            @RequestParam("deviceId") String deviceId,
+            @RequestParam(value = "functionName", required = false) String functionName) {
         Map<String, Object> result = new HashMap<>();
 
         if (deviceId == null || deviceId.trim().isEmpty()) {
@@ -305,6 +307,19 @@ public class DeviceController {
         try {
             QueryWrapper<AlertRecord> wrapper = new QueryWrapper<>();
             wrapper.eq("device_id", deviceId);
+
+            if (functionName != null && !functionName.trim().isEmpty()) {
+                List<AlertRule> rules = alertRuleService.list(
+                    new QueryWrapper<AlertRule>().eq("function_name", functionName)
+                );
+                if (!rules.isEmpty()) {
+                    List<Integer> ruleIds = rules.stream().map(AlertRule::getId).collect(Collectors.toList());
+                    wrapper.in("rule_id", ruleIds);
+                } else {
+                    wrapper.eq("rule_id", -1);
+                }
+            }
+
             wrapper.orderByDesc("alert_time");
 
             List<AlertRecord> records = alertRecordService.list(wrapper);
@@ -314,9 +329,9 @@ public class DeviceController {
                 recordMap.put("id", record.getId());
                 recordMap.put("ruleId", record.getRuleId());
 
-                // 获取规则名称
                 AlertRule rule = alertRuleService.getById(record.getRuleId());
                 recordMap.put("ruleName", rule != null ? rule.getRuleName() : "-");
+                recordMap.put("functionName", rule != null ? rule.getFunctionName() : "-");
 
                 recordMap.put("handleStatus", record.getHandleStatus());
                 recordMap.put("handleResult", record.getHandleResult() != null ? record.getHandleResult() : "-");
