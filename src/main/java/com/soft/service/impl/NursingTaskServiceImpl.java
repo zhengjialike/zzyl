@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.soft.mapper.NursingTaskMapper;
-import com.zzyl.mapper.UserMapper;
+import com.soft.mapper.UserMapper;
 import com.soft.mapper.ElderlyMapper;
 import com.soft.mapper.BedMapper;
 import com.soft.mapper.NursingItemMapper;

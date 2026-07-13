@@ -1,13 +1,17 @@
 package com.soft.service;
 
-import com.soft.pojo.Role;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.soft.pojo.Role;
+import java.util.List;
+import java.util.Map;
 
-/**
-* @author 12
-* @description 针对表【t_role】的数据库操作Service
-* @createDate 2026-07-12 20:47:57
-*/
 public interface RoleService extends IService<Role> {
-
+    List<Role> findAll(String roleName);
+    void addRole(Role role);
+    void updateRole(Role role);
+    void updateStatus(Long id, String status);
+    void saveMenuPerms(Long roleId, List<Long> menuIds);
+    List<Long> getMenuIds(Long roleId);
+    void saveDataScope(Long roleId, String dataScope, String deptIds);
+    Map<String, Object> getDataScope(Long roleId);
 }
