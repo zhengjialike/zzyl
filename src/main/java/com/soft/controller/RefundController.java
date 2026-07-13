@@ -39,4 +39,10 @@ public class RefundController {
                                      @RequestParam(value = "reason", required = false) String reason) {
         return refundService.createRefundRecord(orderId, reason);
     }
+
+    @PostMapping("/approve")
+    public Map<String, Object> approve(@RequestBody Map<String, Integer> params) {
+        Integer refundId = params.get("refundId");
+        return refundService.approveRefund(refundId);
+    }
 }

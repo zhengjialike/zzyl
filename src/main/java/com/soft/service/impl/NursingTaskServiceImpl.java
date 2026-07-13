@@ -8,6 +8,7 @@ import com.soft.mapper.NursingTaskMapper;
 import com.soft.pojo.*;
 import com.soft.service.NursingTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -47,6 +48,10 @@ public class NursingTaskServiceImpl extends ServiceImpl<NursingTaskMapper, Nursi
 
     @Autowired
     private com.soft.mapper.BedNurseMapper bedNurseMapper;
+
+    @Lazy
+    @Autowired
+    private com.soft.service.RefundService refundService;
 
     @Override
     public Map<String, Object> queryTaskPageList(Map<String, Object> params) {
@@ -119,6 +124,13 @@ public class NursingTaskServiceImpl extends ServiceImpl<NursingTaskMapper, Nursi
                 return result;
             }
 
+            // 检查是否到达预期执行时间
+            if (task.getExpectedServiceTime() != null && LocalDateTime.now().isBefore(task.getExpectedServiceTime())) {
+                result.put("code", 400);
+                result.put("msg", "未到预期执行时间（" + task.getExpectedServiceTime() + "），暂时无法执行");
+                return result;
+            }
+
             // 更新任务状态和执行信息
             task.setStatus(1);
             task.setExecutorId(executorId);
@@ -127,6 +139,16 @@ public class NursingTaskServiceImpl extends ServiceImpl<NursingTaskMapper, Nursi
             task.setExecutionImage(executionImage);
 
             this.updateById(task);
+
+            // 如果是计划外任务（来自订单），更新订单状态为已执行
+            if (task.getOrderId() != null && "护理计划外".equals(task.getItemType())) {
+                Order order = orderMapper.selectById(task.getOrderId());
+                if (order != null && order.getStatus() == 1) {
+                    order.setStatus(2);
+                    order.setUpdateTime(LocalDateTime.now());
+                    orderMapper.updateById(order);
+                }
+            }
 
             result.put("code", 200);
             result.put("msg", "执行成功");
@@ -175,8 +197,17 @@ public class NursingTaskServiceImpl extends ServiceImpl<NursingTaskMapper, Nursi
             task.setCancelerId(cancelerId);
             task.setCancelTime(LocalDateTime.now());
             task.setCancelReason(cancelReason);
-
             this.updateById(task);
+
+            // 如果是护理计划外任务且有订单，自动触发退款
+            if ("护理计划外".equals(task.getItemType()) && task.getOrderId() != null) {
+                Order order = orderMapper.selectById(task.getOrderId());
+                if (order != null && order.getStatus() != 4 && order.getStatus() != 5) {
+                    refundService.createRefundRecord(
+                        task.getOrderId(), "护理任务已取消：" + cancelReason
+                    );
+                }
+            }
 
             result.put("code", 200);
             result.put("msg", "取消成功");
@@ -228,9 +259,9 @@ public class NursingTaskServiceImpl extends ServiceImpl<NursingTaskMapper, Nursi
         LocalDate today = LocalDate.now();
 
         try {
-            // ========== 来源一：从已支付的订单生成计划外任务（只生成今天的） ==========
+            // ========== 来源一：从待执行的订单生成计划外任务 ==========
             QueryWrapper<Order> orderWrapper = new QueryWrapper<>();
-            orderWrapper.eq("status", 3);
+            orderWrapper.in("status", 1, 2, 3);
             List<Order> paidOrders = orderMapper.selectList(orderWrapper);
 
             for (Order order : paidOrders) {
@@ -267,6 +298,7 @@ public class NursingTaskServiceImpl extends ServiceImpl<NursingTaskMapper, Nursi
 
                 NursingTask task = new NursingTask();
                 task.setTaskNo("RW" + baseTime + "_" + (totalCreated + 1));
+                task.setOrderId(order.getId());
                 task.setElderlyId(elderlyId);
                 task.setBedId(bedId);
                 task.setNursingItemId(nursingItemId);

@@ -39,6 +39,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Autowired
     private com.soft.service.RefundService refundService;
 
+    @Autowired
+    private com.soft.mapper.NursingTaskMapper nursingTaskMapper;
+
     @Override
     public Map<String, Object> queryOrderList(OrderQueryDto dto) {
         Map<String, Object> result = new HashMap<>();
@@ -111,16 +114,28 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 return result;
             }
 
-            // 只有待支付和待执行的订单可以取消
             if (order.getStatus() != 0 && order.getStatus() != 1) {
                 result.put("code", 400);
                 result.put("msg", "当前订单状态不允许取消");
                 return result;
             }
 
-            order.setStatus(5); // 已关闭
+            order.setStatus(5);
             order.setCancelReason(reason);
             this.updateById(order);
+
+            // 联动取消该订单对应的护理任务
+            QueryWrapper<NursingTask> taskWrapper = new QueryWrapper<>();
+            taskWrapper.eq("order_id", orderId).eq("status", 0);
+            List<NursingTask> tasks = nursingTaskMapper.selectList(taskWrapper);
+            for (NursingTask task : tasks) {
+                task.setStatus(2);
+                task.setCancelerId(1);
+                task.setCancelTime(LocalDateTime.now());
+                task.setCancelReason("对方已经取消" + (reason != null ? reason : ""));
+                task.setUpdateTime(LocalDateTime.now());
+                nursingTaskMapper.updateById(task);
+            }
 
             result.put("code", 200);
             result.put("msg", "取消订单成功");
@@ -145,24 +160,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 return result;
             }
 
-            // 只有已支付的订单可以申请退款
-            if (order.getPaidAt() == null) {
+            if (order.getStatus() != 1 && order.getStatus() != 2) {
                 result.put("code", 400);
-                result.put("msg", "订单未支付，无法申请退款");
+                result.put("msg", "只有待执行和已执行的订单可以申请退款");
                 return result;
             }
 
-            // 已完成的订单不能退款
-            if (order.getStatus() == 3) {
-                result.put("code", 400);
-                result.put("msg", "已完成的订单不能申请退款");
-                return result;
-            }
-
-            // 创建退款记录
             Map<String, Object> refundResult = refundService.createRefundRecord(orderId, reason);
             
-            // 检查退款记录是否创建成功
             Integer refundCode = (Integer) refundResult.get("code");
             if (refundCode != 200) {
                 result.put("code", refundCode);
@@ -170,13 +175,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 return result;
             }
 
-            // 更新订单状态为已退款
-            order.setStatus(4); // 已退款
-            order.setCancelReason(reason);
-            this.updateById(order);
-
             result.put("code", 200);
-            result.put("msg", "申请退款成功");
+            result.put("msg", "退款申请已提交，等待处理");
         } catch (Exception e) {
             result.put("code", 400);
             result.put("msg", "申请退款失败：" + e.getMessage());
@@ -276,16 +276,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     private String getTransactionStatus(Order order) {
-        if (order.getPaidAt() != null) {
-            return "已支付";
-        }
         if (order.getStatus() == 5) {
             return "已关闭";
         }
         if (order.getStatus() == 4) {
-            return "退款成功";
+            return "已退款";
         }
-        return "待支付";
+        if (order.getStatus() == 0) {
+            return "待支付";
+        }
+        // 待执行(1)、已执行(2)、已完成(3) 都说明已经支付过了
+        return "已支付";
     }
 
     private String formatDate(LocalDateTime dateTime) {

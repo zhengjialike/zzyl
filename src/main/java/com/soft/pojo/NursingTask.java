@@ -45,6 +45,11 @@ public class NursingTask {
     private Integer nursingItemId;
 
     /**
+     * 关联订单ID（计划外任务来自订单）
+     */
+    private Integer orderId;
+
+    /**
      * 项目类型：护理计划内/护理计划外
      */
     private String itemType;

@@ -13,6 +13,7 @@ import com.soft.service.RefundService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,6 +26,12 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
     @Lazy
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private com.soft.service.CustomerService customerService;
+
+    @Autowired
+    private com.soft.mapper.NursingTaskMapper nursingTaskMapper;
 
     @Override
     public Map<String, Object> queryRefundList(RefundQueryDto dto) {
@@ -175,6 +182,59 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
         return result;
     }
 
+    @Override
+    @Transactional
+    public Map<String, Object> approveRefund(Integer refundId) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            Refund refund = this.getById(refundId);
+            if (refund == null) {
+                result.put("code", 404);
+                result.put("msg", "退款记录不存在");
+                return result;
+            }
+
+            if (refund.getStatus() != 0) {
+                result.put("code", 400);
+                result.put("msg", "只有处理中的退款记录可以操作");
+                return result;
+            }
+
+            refund.setStatus(1);
+            refund.setRefundedAt(LocalDateTime.now());
+            this.updateById(refund);
+
+            Order order = orderService.getById(refund.getOrderId());
+            if (order != null) {
+                order.setStatus(4);
+                orderService.updateById(order);
+
+                // 联动取消该订单对应的护理任务
+                QueryWrapper<com.soft.pojo.NursingTask> taskWrapper = new QueryWrapper<>();
+                taskWrapper.eq("order_id", order.getId()).eq("status", 0);
+                List<com.soft.pojo.NursingTask> tasks = nursingTaskMapper.selectList(taskWrapper);
+                for (com.soft.pojo.NursingTask task : tasks) {
+                    task.setStatus(2);
+                    task.setCancelerId(1);
+                    task.setCancelTime(LocalDateTime.now());
+                    task.setCancelReason("对方已经退款" + (order.getCancelReason() != null ? order.getCancelReason() : ""));
+                    task.setUpdateTime(LocalDateTime.now());
+                    nursingTaskMapper.updateById(task);
+                }
+            }
+
+            result.put("code", 200);
+            result.put("msg", "退款成功");
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "操作失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
     // ==================== 辅助方法 ====================
 
     private String generateRefundNo() {
@@ -183,8 +243,8 @@ public class RefundServiceImpl extends ServiceImpl<RefundMapper, Refund> impleme
 
     private String getCustomerName(Integer customerId) {
         if (customerId == null) return "-";
-        // 这里应该调用CustomerService，但为避免循环依赖，暂时返回默认值
-        return "用户-" + customerId;
+        com.soft.pojo.Customer customer = customerService.getById(customerId);
+        return customer != null && customer.getRealName() != null ? customer.getRealName() : "-";
     }
 
     private String getOrderStatusText(Integer orderId) {
