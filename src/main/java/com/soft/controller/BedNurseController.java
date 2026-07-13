@@ -5,7 +5,7 @@ import com.soft.pojo.BedNurse;
 import com.soft.pojo.User;
 import com.soft.pojo.Bed;
 import com.soft.service.BedNurseService;
-import com.soft.mapper.UserMapper;
+import com.zzyl.mapper.UserMapper;
 import com.soft.mapper.BedMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
