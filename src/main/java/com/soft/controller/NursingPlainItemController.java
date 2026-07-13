@@ -54,4 +54,10 @@ public class NursingPlainItemController {
     public Map<String,Object> delNursingPlain(@RequestParam(name="id") Integer id){
         return nursingPlainService.delNursingPlainService(id);
     }
+
+    /*切换护理计划状态*/
+    @RequestMapping("/toggleNursingPlainStatus")
+    public Map<String,Object> toggleNursingPlainStatus(@RequestParam(name="id") Integer id){
+        return nursingPlainService.toggleStatusService(id);
+    }
 }

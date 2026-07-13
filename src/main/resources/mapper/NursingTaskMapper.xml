@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.soft.mapper.NursingTaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.soft.pojo.NursingTask">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="taskNo" column="task_no" jdbcType="VARCHAR"/>
+            <result property="elderlyId" column="elderly_id" jdbcType="INTEGER"/>
+            <result property="bedId" column="bed_id" jdbcType="INTEGER"/>
+            <result property="nursingItemId" column="nursing_item_id" jdbcType="INTEGER"/>
+            <result property="itemType" column="item_type" jdbcType="VARCHAR"/>
+            <result property="nurseId" column="nurse_id" jdbcType="INTEGER"/>
+            <result property="expectedServiceTime" column="expected_service_time" jdbcType="TIMESTAMP"/>
+            <result property="status" column="status" jdbcType="TINYINT"/>
+            <result property="executorId" column="executor_id" jdbcType="INTEGER"/>
+            <result property="executionTime" column="execution_time" jdbcType="TIMESTAMP"/>
+            <result property="executionRecord" column="execution_record" jdbcType="VARCHAR"/>
+            <result property="executionImage" column="execution_image" jdbcType="VARCHAR"/>
+            <result property="cancelerId" column="canceler_id" jdbcType="INTEGER"/>
+            <result property="cancelTime" column="cancel_time" jdbcType="TIMESTAMP"/>
+            <result property="cancelReason" column="cancel_reason" jdbcType="VARCHAR"/>
+            <result property="creator" column="creator" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="remark" column="remark" jdbcType="VARCHAR"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="elderlyName" column="elderly_name" jdbcType="VARCHAR"/>
+            <result property="bedNumber" column="bed_number" jdbcType="VARCHAR"/>
+            <result property="itemName" column="item_name" jdbcType="VARCHAR"/>
+            <result property="nurseName" column="nurse_name" jdbcType="VARCHAR"/>
+            <result property="executorName" column="executor_name" jdbcType="VARCHAR"/>
+            <result property="cancelerName" column="canceler_name" jdbcType="VARCHAR"/>
+            <result property="gender" column="gender" jdbcType="VARCHAR"/>
+            <result property="age" column="age" jdbcType="INTEGER"/>
+            <result property="nursingLevel" column="nursing_level" jdbcType="VARCHAR"/>
+            <result property="nurseNames" column="nurse_names" jdbcType="VARCHAR"/>
+            <result property="elderlyPhoto" column="elderly_photo" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        t.id,t.task_no,t.elderly_id,
+        t.bed_id,t.nursing_item_id,t.item_type,
+        t.nurse_id,t.expected_service_time,t.status,
+        t.executor_id,t.execution_time,t.execution_record,
+        t.execution_image,t.canceler_id,t.cancel_time,
+        t.cancel_reason,t.creator,t.create_time,
+        t.remark,t.update_time
+    </sql>
+
+    <select id="selectTaskPageList" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        e.real_name AS elderly_name,
+        b.bed_number AS bed_number,
+        ni.itemname AS item_name,
+        u1.realname AS nurse_name,
+        u2.realname AS executor_name,
+        u3.realname AS canceler_name
+        FROM t_nursing_task t
+        LEFT JOIN t_elderly e ON e.id = t.elderly_id
+        LEFT JOIN t_bed b ON b.id = t.bed_id
+        LEFT JOIN t_nursing_item ni ON ni.id = t.nursing_item_id
+        LEFT JOIN t_user u1 ON u1.id = t.nurse_id
+        LEFT JOIN t_user u2 ON u2.id = t.executor_id
+        LEFT JOIN t_user u3 ON u3.id = t.canceler_id
+        <where>
+            <if test="elderlyName != null and elderlyName != ''">
+                AND e.real_name LIKE CONCAT('%', #{elderlyName}, '%')
+            </if>
+            <if test="nurseName != null and nurseName != ''">
+                AND u1.realname LIKE CONCAT('%', #{nurseName}, '%')
+            </if>
+            <if test="nursingItemName != null and nursingItemName != ''">
+                AND ni.itemname LIKE CONCAT('%', #{nursingItemName}, '%')
+            </if>
+            <if test="status != null">
+                AND t.status = #{status}
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND t.expected_service_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND t.expected_service_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY t.expected_service_time ASC, t.id ASC
+    </select>
+
+    <select id="selectTaskDetail" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        e.real_name AS elderly_name,
+        e.gender AS gender,
+        e.birthday AS birthday,
+        b.bed_number AS bed_number,
+        ni.itemname AS item_name,
+        u1.realname AS nurse_name,
+        u2.realname AS executor_name,
+        u3.realname AS canceler_name,
+        ci.nursing_level AS nursing_level,
+        ci.age AS age,
+        (SELECT GROUP_CONCAT(u.realname SEPARATOR '、')
+         FROM t_bed_nurse bn
+         LEFT JOIN t_user u ON u.id = bn.nurse_id
+         WHERE bn.bed_id = t.bed_id
+        ) AS nurse_names
+        FROM t_nursing_task t
+        LEFT JOIN t_elderly e ON e.id = t.elderly_id
+        LEFT JOIN t_bed b ON b.id = t.bed_id
+        LEFT JOIN t_nursing_item ni ON ni.id = t.nursing_item_id
+        LEFT JOIN t_user u1 ON u1.id = t.nurse_id
+        LEFT JOIN t_user u2 ON u2.id = t.executor_id
+        LEFT JOIN t_user u3 ON u3.id = t.canceler_id
+        LEFT JOIN t_check_in ci ON ci.elder_id = t.elderly_id
+        WHERE t.id = #{taskId}
+    </select>
+</mapper>

@@ -1,5 +1,8 @@
 package com.soft.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.soft.dto.UserLineDto;
 import com.soft.dto.UserPwdDto;
 import com.soft.mapper.RoleMapper;
@@ -13,13 +16,12 @@ import com.soft.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 public class UserController {
@@ -166,5 +168,83 @@ public class UserController {
         }
         // 调用 service 更新密码
         return userService.updateUserPwdService(userDto);
+    }
+
+    /**
+     * 分页查询用户列表
+     */
+    @PostMapping("/user/pageList")
+    public Map<String, Object> userPageList(@RequestBody Map<String, Object> params) {
+        return userService.queryUserPageList(params);
+    }
+
+    /**
+     * 查询护理员列表（根据职位名称过滤）
+     */
+    @PostMapping("/user/nurseList")
+    public Map<String, Object> nurseList(@RequestBody Map<String, Object> params) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Integer pageNum = (Integer) params.getOrDefault("pageNum", 1);
+            Integer pageSize = (Integer) params.getOrDefault("pageSize", 100);
+            
+            // 查询职位名称包含"护理"的position ID列表
+            List<Position> positions = positionService.list().stream()
+                .filter(p -> p.getPositionName() != null && p.getPositionName().contains("护理"))
+                .collect(Collectors.toList());
+            
+            List<Integer> nursePositionIds = positions.stream()
+                .map(Position::getId)
+                .collect(Collectors.toList());
+            
+            QueryWrapper<User> wrapper = new QueryWrapper<>();
+            if (!nursePositionIds.isEmpty()) {
+                wrapper.in("position_id", nursePositionIds);
+            } else {
+                // 如果职位表没有数据，返回空列表
+                result.put("code", 200);
+                result.put("users", List.of());
+                result.put("total", 0);
+                return result;
+            }
+            
+            Page<User> page = new Page<>(pageNum, pageSize);
+            IPage<User> iPage = userService.page(page, wrapper);
+            
+            result.put("code", 200);
+            result.put("users", iPage.getRecords());
+            result.put("total", iPage.getTotal());
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "查询失败：" + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 查询用户详情
+     */
+    @GetMapping("/user/detail")
+    public Map<String, Object> userDetail(@RequestParam Integer id) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            User user = userService.getById(id);
+            if (user == null) {
+                result.put("code", 400);
+                result.put("msg", "用户不存在");
+                return result;
+            }
+            
+            result.put("code", 200);
+            result.put("msg", "查询成功");
+            result.put("user", user);
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "查询失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return result;
     }
 }

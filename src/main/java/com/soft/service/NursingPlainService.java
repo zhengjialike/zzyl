@@ -30,4 +30,6 @@ public interface NursingPlainService extends IService<NursingPlain> {
     
     /*删除护理计划*/
     public Map<String,Object> delNursingPlainService(Integer id);
+
+    public Map<String,Object> toggleStatusService(Integer id);
 }

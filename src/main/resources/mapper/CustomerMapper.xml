@@ -27,16 +27,21 @@
     <!-- 检查客户是否已签约（是否存在相关合同） -->
     <select id="checkContractExists" resultType="boolean">
         SELECT EXISTS(
-            SELECT 1 FROM t_contract
-            WHERE party_b_phone = #{phone} OR party_c_phone = #{phone}
+            SELECT 1 FROM t_contract c
+            INNER JOIN t_elderly e ON c.elder_id = e.id
+            INNER JOIN t_family_binding fb ON e.id = fb.elderly_id
+            WHERE fb.customer_id IN (
+                SELECT id FROM t_customer WHERE phone = #{phone}
+            )
         )
     </select>
 
     <!-- 查询客户的订单数量（状态为已完成或待执行） -->
     <select id="getOrderCountByPhone" resultType="integer">
-        SELECT COUNT(*) FROM t_order
-        WHERE customer_phone = #{phone}
-          AND status IN (1, 2)
+        SELECT COUNT(*) FROM t_order o
+        INNER JOIN t_customer c ON o.customer_id = c.id
+        WHERE c.phone = #{phone}
+          AND o.status IN (1, 2)
     </select>
 
     <!-- 查询客户绑定的所有老人姓名 -->

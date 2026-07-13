@@ -2,8 +2,14 @@ package com.soft.controller.RoomEquipment;
 
 import com.soft.pojo.Bed;
 import com.soft.pojo.Elderly;
+import com.soft.pojo.Floor;
+import com.soft.pojo.Room;
 import com.soft.service.BedService;
+import com.soft.service.BedNurseService;
 import com.soft.service.ElderlyService;
+import com.soft.service.FloorService;
+import com.soft.service.RoomService;
+import com.soft.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +26,18 @@ public class BedController {
 
     @Autowired
     private ElderlyService elderlyService;
+
+    @Autowired
+    private RoomService roomService;
+
+    @Autowired
+    private FloorService floorService;
+
+    @Autowired
+    private BedNurseService bedNurseService;
+
+    @Autowired
+    private UserService userService;
 
     /**
      * 新增床位
@@ -147,6 +165,144 @@ public class BedController {
             result.put("code", 400);
             result.put("msg", "删除床位失败：" + e.getMessage());
         }
+        return result;
+    }
+
+    /**
+     * 查询楼层列表
+     */
+    @GetMapping("/floor/list")
+    public Map<String, Object> getFloorList() {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            List<Floor> floors = floorService.list();
+            result.put("code", 200);
+            result.put("floors", floors);
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "查询失败：" + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 根据楼层查询房间列表（包含床位信息）
+     */
+    @GetMapping("/bed/listByFloor")
+    public Map<String, Object> getRoomsByFloor(@RequestParam("floor") String floorName) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            System.out.println("========== 开始查询楼层: " + floorName + " ==========");
+            
+            // 先根据楼层名称查询楼层
+            List<Floor> floors = floorService.list().stream()
+                .filter(f -> floorName.equals(f.getFloorName()))
+                .collect(Collectors.toList());
+            
+            System.out.println("查询到的楼层数量: " + floors.size());
+            
+            if (floors.isEmpty()) {
+                result.put("code", 400);
+                result.put("msg", "该楼层不存在: " + floorName);
+                return result;
+            }
+            
+            Integer floorId = floors.get(0).getId();
+            System.out.println("楼层ID: " + floorId);
+            
+            // 使用已有的 getRoomsByFloorId 方法直接按 floor_id 查询
+            List<Room> rooms = roomService.getRoomsByFloorId(floorId);
+            
+            System.out.println("查询到的房间数量: " + rooms.size());
+            
+            // 为每个房间加载床位信息
+            List<Map<String, Object>> roomList = rooms.stream().map(room -> {
+                Map<String, Object> roomMap = new HashMap<>();
+                roomMap.put("id", room.getId());
+                roomMap.put("roomNumber", room.getRoomNumber());
+                
+                List<Bed> beds = bedService.getBedsByRoomId(room.getId());
+                System.out.println("房间 " + room.getRoomNumber() + " 的床位数量: " + beds.size());
+                
+                List<Map<String, Object>> bedList = beds.stream().map(bed -> {
+                    Map<String, Object> bedMap = new HashMap<>();
+                    bedMap.put("id", bed.getId());
+                    bedMap.put("bedNumber", bed.getBedNumber());
+                    bedMap.put("elderlyId", bed.getElderlyId());
+                    
+                    if (bed.getElderlyId() != null) {
+                        Elderly elderly = elderlyService.getById(bed.getElderlyId());
+                        if (elderly != null) {
+                            bedMap.put("elderlyName", elderly.getRealName());
+                        } else {
+                            bedMap.put("elderlyName", null);
+                        }
+                    } else {
+                        bedMap.put("elderlyName", null);
+                    }
+                    
+                    // 查询床位的护理员列表
+                    List<Integer> nurseIds = bedNurseService.getNurseIdsByBedId(bed.getId());
+                    List<Map<String, Object>> nurseList = new java.util.ArrayList<>();
+                    if (nurseIds != null && !nurseIds.isEmpty()) {
+                        for (Integer nurseId : nurseIds) {
+                            com.soft.pojo.User nurse = userService.getById(nurseId);
+                            if (nurse != null) {
+                                Map<String, Object> nurseMap = new HashMap<>();
+                                nurseMap.put("id", nurse.getId());
+                                nurseMap.put("realname", nurse.getRealname());
+                                nurseList.add(nurseMap);
+                            }
+                        }
+                    }
+                    bedMap.put("nurses", nurseList);
+
+                    return bedMap;
+                }).collect(Collectors.toList());
+                
+                roomMap.put("beds", bedList);
+                return roomMap;
+            }).collect(Collectors.toList());
+            
+            System.out.println("最终返回的房间列表数量: " + roomList.size());
+            
+            result.put("code", 200);
+            result.put("msg", "查询成功");
+            result.put("rooms", roomList);
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "查询失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return result;
+    }
+
+    /**
+     * 查询床位详情
+     */
+    @GetMapping("/bed/detail")
+    public Map<String, Object> getBedDetail(@RequestParam("id") Integer id) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            Bed bed = bedService.getById(id);
+            if (bed == null) {
+                result.put("code", 400);
+                result.put("msg", "床位不存在");
+                return result;
+            }
+            
+            result.put("code", 200);
+            result.put("msg", "查询成功");
+            result.put("bed", bed);
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "查询失败：" + e.getMessage());
+            e.printStackTrace();
+        }
+        
         return result;
     }
 }

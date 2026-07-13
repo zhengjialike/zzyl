@@ -49,7 +49,9 @@ public class NursingItemController {
     // 分页查询（修正为POST以支持@RequestBody，匹配前端）
     @PostMapping("/nursingItemPage")
     public Map<String, Object> nursingItemPageList(@RequestBody NursingItemDto dto) {
-        return nursingItemService.queryNursingItemList(dto);
+        Map<String, Object> result = nursingItemService.queryNursingItemList(dto);
+        result.put("code", 200);
+        return result;
     }
 
     // 更新护理项目

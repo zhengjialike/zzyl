@@ -199,6 +199,30 @@ public class NursingPlainServiceImpl extends ServiceImpl<NursingPlainMapper, Nur
         
         return result;
     }
+
+    @Override
+    public Map<String, Object> toggleStatusService(Integer id) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            NursingPlain plain = this.getById(id);
+            if (plain == null) {
+                result.put("code", 400);
+                result.put("msg", "护理计划不存在");
+                return result;
+            }
+            String newStatus = "启用".equals(plain.getIslock()) ? "禁用" : "启用";
+            NursingPlain update = new NursingPlain();
+            update.setId(id);
+            update.setIslock(newStatus);
+            this.updateById(update);
+            result.put("code", 200);
+            result.put("msg", "状态切换成功");
+        } catch (Exception e) {
+            result.put("code", 400);
+            result.put("msg", "状态切换失败：" + e.getMessage());
+        }
+        return result;
+    }
 }
 
 

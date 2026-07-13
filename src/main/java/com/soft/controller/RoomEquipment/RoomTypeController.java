@@ -137,6 +137,17 @@ public class RoomTypeController {
             com.soft.dto.UserLineDto user = (com.soft.dto.UserLineDto) online;
             return user.getUname();
         }
-        return "系统"; // 默认值
+        return "系统";
+    }
+
+    /**
+     * 检查房型下是否有房间
+     */
+    @GetMapping("/checkRoomTypeHasRooms")
+    public Map<String, Object> checkRoomTypeHasRooms(@RequestParam("id") Integer id) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 200);
+        result.put("hasRooms", roomTypeService.hasRooms(id));
+        return result;
     }
 }
