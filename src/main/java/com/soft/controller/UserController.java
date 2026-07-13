@@ -121,15 +121,12 @@ public class UserController {
     /**
      * 分页查询用户列表
      */
-    @PostMapping("/user/pageList")
+    @PostMapping("/pageList")
     public Map<String, Object> userPageList(@RequestBody Map<String, Object> params) {
         return userService.queryUserPageList(params);
     }
 
-    /**
-     * 查询护理员列表（根据职位名称过滤）
-     */
-    @PostMapping("/user/nurseList")
+    @PostMapping("/nurseList")
     public Map<String, Object> nurseList(@RequestBody Map<String, Object> params) {
         Map<String, Object> result = new HashMap<>();
         try {
@@ -172,7 +169,7 @@ public class UserController {
     /**
      * 查询用户详情
      */
-    @GetMapping("/user/detail")
+    @GetMapping("/detail")
     public Map<String, Object> userDetail(@RequestParam Integer id) {
         Map<String, Object> result = new HashMap<>();
 
