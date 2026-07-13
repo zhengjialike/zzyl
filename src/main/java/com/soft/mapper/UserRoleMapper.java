@@ -1,18 +1,17 @@
 package com.soft.mapper;
 
-import com.soft.pojo.UserRole;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.soft.pojo.UserRole;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
-/**
-* @author 12
-* @description 针对表【t_user_role】的数据库操作Mapper
-* @createDate 2026-07-12 20:48:20
-* @Entity com.soft.pojo.UserRole
-*/
+import java.util.List;
+
 public interface UserRoleMapper extends BaseMapper<UserRole> {
+    @Delete("DELETE FROM t_user_role WHERE user_id = #{userId}")
+    void deleteByUserId(@Param("userId") Long userId);
 
+    @Select("SELECT role_id FROM t_user_role WHERE user_id = #{userId}")
+    List<Long> getRoleIdsByUserId(@Param("userId") Long userId);
 }
-
-
-
-

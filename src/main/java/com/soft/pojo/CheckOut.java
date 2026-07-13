@@ -13,7 +13,12 @@ import java.time.LocalDateTime;
 
 @TableName(value = "t_check_out")
 @Data
+/**
+ * 退住业务单实体，对应申请、两类审批、合同解除、账单调整和费用清算七步流程。
+ * 老人最终状态和床位释放只在费用清算完成时更新。
+ */
 public class CheckOut {
+    // ---------- 单据、老人和流程状态 ----------
     @TableId(type = IdType.AUTO)
     private Integer id;
     private String billNo;
@@ -33,9 +38,11 @@ public class CheckOut {
     private LocalDateTime updateTime;
     private String remark;
 
+    /** 数据库列使用 checkout_reason，页面/实体使用更自然的 reason。 */
     @TableField("checkout_reason")
     private String reason;
 
+    // ---------- 审批和费用清算 ----------
     private String approver;
     @TableField("approve_opinion")
     private String approveRemark;
@@ -53,6 +60,8 @@ public class CheckOut {
     private String refundVoucher;
     private BigDecimal refundAmount;
     private String approveResult;
+
+    // ---------- 从最近一次已完成入住单复制的只读业务快照 ----------
     private String nursingLevel;
     private String bedNo;
     private String advisor;
@@ -61,7 +70,7 @@ public class CheckOut {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate billEndDate;
 
-    /** 以下字段用于退住详情聚合展示，不直接映射到 t_check_out。 */
+    /** 以下字段由老人表、合同表聚合，仅用于退住详情展示，不映射到 t_check_out。 */
     @TableField(exist = false)
     private String phone;
     @TableField(exist = false)

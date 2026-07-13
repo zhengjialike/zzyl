@@ -1,102 +1,60 @@
 package com.soft.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.soft.dto.UserDto;
-import com.soft.dto.UserLineDto;
-import com.soft.dto.UserPwdDto;
-import com.soft.mapper.UserMapper;
+import com.soft.common.PageResult;
 import com.soft.pojo.User;
+import com.soft.pojo.UserRole;
+import com.soft.mapper.UserMapper;
+import com.soft.mapper.UserRoleMapper;
 import com.soft.service.UserService;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    @Autowired
-    private UserMapper userMapper;
+    @Autowired private UserRoleMapper userRoleMapper;
 
     @Override
-    public Map<String, Object> queryUserService(UserDto userDto, HttpSession session) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("msg", "身份验证失败......");
-        
-        String account = userDto.getAccount();
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.eq("account", account);
-        
-        // 根据账号查询数据
-        List<User> users = userMapper.selectList(wrapper);
-        if (users == null || users.isEmpty()) {
-            result.put("msg", account + "账号不存在......");
-            return result;
-        }
+    public PageResult<User> findPage(int pageNum, int pageSize, String name, String email, String status, Long deptId) {
+        Page<User> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(name)) { wrapper.like(User::getRealname, name); }
+        if (StringUtils.hasText(email)) { wrapper.like(User::getEmail, email); }
+        if (StringUtils.hasText(status)) { wrapper.eq(User::getIslock, Integer.valueOf(status)); }
+        if (deptId != null) { wrapper.eq(User::getDeptId, deptId); }
+        wrapper.orderByDesc(User::getId);
+        IPage<User> iPage = baseMapper.selectPage(page, wrapper);
+        return new PageResult<>(iPage.getRecords(), iPage.getTotal(), iPage.getCurrent(), iPage.getSize());
+    }
 
-        // 账号存在，验证密码
-        User user = users.get(0);
-        String dbPwd = user.getUpwd();
-        // 实际生产应使用加密比对（如 MD5），此处为明文比对（示例）
-        if (!dbPwd.equals(userDto.getUpwd())) {
-            result.put("msg", "输入密码错误......");
-            return result;
+    @Override @Transactional
+    public void addUser(User user, Long[] roleIds) {
+        user.setUpwd("888itcast.CN764%..."); baseMapper.insert(user);
+        if (roleIds != null && roleIds.length > 0) {
+            for (Long roleId : roleIds) { UserRole ur = new UserRole(); ur.setUserId(user.getId()); ur.setRoleId(roleId); userRoleMapper.insert(ur); }
         }
-        
-        //身份验证通过，记录登录信息（包含完整字段）
-        UserLineDto userLineDto = new UserLineDto();
-        userLineDto.setId(user.getId());
-        userLineDto.setUname(user.getRealname());
-        userLineDto.setSex(user.getSex());
-        userLineDto.setPhone(user.getPhone());
-        userLineDto.setImage(user.getImage());
-        userLineDto.setDeptId(user.getDeptId());
-        userLineDto.setPositionId(user.getPositionId());
-        userLineDto.setAccount(user.getAccount());
-        userLineDto.setEmail(user.getEmail());
-        
-        session.setAttribute("online", userLineDto);
+    }
 
-        result.put("code", 200);
-        return result;
+    @Override @Transactional
+    public void updateUser(User user, Long[] roleIds) {
+        baseMapper.updateById(user); userRoleMapper.deleteByUserId(user.getId().longValue());
+        if (roleIds != null && roleIds.length > 0) {
+            for (Long roleId : roleIds) { UserRole ur = new UserRole(); ur.setUserId(user.getId()); ur.setRoleId(roleId); userRoleMapper.insert(ur); }
+        }
     }
 
     @Override
-    public Map<String, Object> updateUserPwdService(UserPwdDto pwdDto) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 400);
-        result.put("msg", "更新用户密码失败......");
+    public void updateStatus(Long id, String status) { User user = new User(); user.setId(id.intValue()); user.setIslock(Integer.valueOf(status)); baseMapper.updateById(user); }
 
-        // 1. 根据 id 查询原始用户
-        Integer id = pwdDto.getId();
-        User user = userMapper.selectById(id);
-        if (user == null) {
-            result.put("msg", "用户不存在");
-            return result;
-        }
+    @Override
+    public void resetPassword(Long id) { User user = new User(); user.setId(id.intValue()); user.setUpwd("888itcast.CN764%..."); baseMapper.updateById(user); }
 
-        // 2. 验证原始密码是否正确
-        if (!user.getUpwd().equals(pwdDto.getOldpwd())) {
-            result.put("msg", "原始密码不正确......");
-            return result;
-        }
-
-        // 3. 更新新密码
-        User updateUser = new User();
-        updateUser.setId(id);
-        updateUser.setUpwd(pwdDto.getNewpwd());
-        userMapper.updateById(updateUser);
-
-        result.put("code", 200);
-        result.put("msg", "更新用户密码成功，请重新登录......");
-        return result;
-    }
+    @Override
+    public Long[] getUserRoleIds(Long userId) { return userRoleMapper.getRoleIdsByUserId(userId).toArray(new Long[0]); }
 }
-
-
-
-

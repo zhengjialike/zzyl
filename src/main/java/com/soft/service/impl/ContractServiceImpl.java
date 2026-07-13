@@ -23,6 +23,10 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+/**
+ * 合同查询与状态维护服务。
+ * 合同本身不在此服务中创建或解除：创建由入住流程负责，失效由退住流程负责。
+ */
 public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> implements ContractService {
 
     @Autowired
@@ -52,6 +56,9 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     }
 
     @Override
+    /**
+     * 刷新状态后分页查询，并排除入住配置阶段仅用于预览编号的“待完成”合同。
+     */
     public Map<String, Object> pageList(ContractPageDto dto) {
         refreshContractStatuses();
         Page<Contract> page = new Page<>(dto.getPageNum(), dto.getPageSize());
@@ -79,6 +86,10 @@ public class ContractServiceImpl extends ServiceImpl<ContractMapper, Contract> i
     }
 
     @Override
+    /**
+     * 返回面向页面的聚合 Map：合同基础信息来自 t_contract，签约资料来自 t_check_in，
+     * 已失效合同的解除资料来自 t_check_out 和退住流程日志。
+     */
     public Map<String, Object> queryDetail(Integer id) {
         refreshContractStatuses();
         Contract contract = contractMapper.selectById(id);

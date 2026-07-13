@@ -11,6 +11,7 @@ import com.soft.mapper.ContractMapper;
 import com.soft.mapper.BedMapper;
 import com.soft.pojo.*;
 import com.soft.service.*;
+import com.soft.service.BillService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,12 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
+/**
+ * 退住七步流程业务实现。
+ *
+ * <p>退住会跨越老人档案、入住快照、合同、账单和床位。合同在第 3 步只建立临时关联，
+ * 第 6 步退住审批通过后才失效；老人状态和床位则到第 7 步费用清算完成后才更新。</p>
+ */
 public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> implements CheckOutService {
 
     /** 原型定义的退住流程是七步，账单审批与退住审批是两个独立节点。 */
@@ -40,6 +47,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     @Autowired private ElderlyService elderlyService;
 
     @Override
+    /** 按查询条件分页返回退住单，默认按创建时间倒序。 */
     public Map<String, Object> pageList(CheckOutPageDto dto) {
         Page<CheckOut> page = new Page<>(dto.getPageNum(), dto.getPageSize());
         QueryWrapper<CheckOut> wrapper = new QueryWrapper<>();
@@ -58,6 +66,9 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     }
 
     @Override
+    /**
+     * 只返回在住老人，并排除已经存在“申请中”退住单的老人，防止同一老人并行办理两张退住单。
+     */
     public List<Elderly> queryEligibleElders(String keyword) {
         QueryWrapper<CheckOut> activeWrapper = new QueryWrapper<>();
         activeWrapper.select("elder_id").eq("flow_status", "申请中").isNotNull("elder_id");
@@ -75,6 +86,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     }
 
     @Override
+    /** 从退住单反查老人，只暴露该老人未生效或生效中的合同。 */
     public List<Contract> queryActiveContracts(Integer checkOutId) {
         CheckOut checkOut = checkOutMapper.selectById(checkOutId);
         if (checkOut == null || checkOut.getElderId() == null) return List.of();
@@ -87,6 +99,10 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
 
     @Override
     @Transactional
+    /**
+     * 发起退住申请。床位、护理等级和账单期限均从最近完成的入住单复制，
+     * 不采用请求体中的同名字段，避免客户端伪造关键业务快照。
+     */
     public Map<String, Object> startApply(StepSubmitDto dto, String applicant) {
         Map<String, Object> result = new HashMap<>();
         result.put("code", 400);
@@ -137,6 +153,10 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
 
     @Override
     @Transactional
+    /**
+     * 提交退住第 2～7 步。每个 case 只处理当前节点允许修改的数据，
+     * 成功后更新 currentStep 并写入统一流程日志。
+     */
     public Map<String, Object> submitStep(StepSubmitDto dto, String operator) {
         Map<String, Object> result = new HashMap<>();
         result.put("code", 400);
@@ -187,6 +207,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
                 co.setCurrentStep(5);
                 break;
             case 5: // 账单审批
+                // 驳回后流程关闭，同时清除第 3 步建立的合同临时关联。
                 if (!"通过".equals(dto.getApproveResult()) && !"驳回".equals(dto.getApproveResult())) {
                     result.put("msg", "请选择审批结果"); return result;
                 }
@@ -215,6 +236,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
                 }
                 break;
             case 7: // 费用清算
+                // 清算前重新查未缴账单，不能只依赖页面进入该步骤时加载的旧数据。
                 List<Bill> unpaidBills = billService.queryByElderId(co.getElderId()).stream()
                         .filter(bill -> Integer.valueOf(0).equals(bill.getStatus())).toList();
                 if (!unpaidBills.isEmpty()) { result.put("msg", "存在欠费账单，请完成缴费后再清算"); return result; }
@@ -297,6 +319,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     }
 
     @Override
+    /** 聚合退住主表、老人联系电话以及本次关联的合同编号。 */
     public CheckOut queryDetail(Integer id) {
         CheckOut detail = checkOutMapper.selectById(id);
         if (detail == null) return null;
@@ -315,6 +338,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
     }
 
     @Override
+    /** 单据不存在时返回空日志列表。 */
     public List<ApplyLog> queryLogs(Integer id) {
         CheckOut co = checkOutMapper.selectById(id);
         if (co == null) return List.of();
@@ -340,6 +364,7 @@ public class CheckOutServiceImpl extends ServiceImpl<CheckOutMapper, CheckOut> i
         return result;
     }
 
+    /** 生成 TZ 前缀退住单号。 */
     private String generateBillNo(String prefix) {
         return prefix + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ThreadLocalRandom.current().nextInt(1000, 9999);
     }
