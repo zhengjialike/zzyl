@@ -3,6 +3,8 @@ package com.soft.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.soft.common.PageResult;
+import com.soft.common.Result;
 import com.soft.dto.UserLineDto;
 import com.soft.dto.UserPwdDto;
 import com.soft.mapper.RoleMapper;
@@ -24,104 +26,50 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
+@RequestMapping("/user")
 public class UserController {
 
     @Autowired
     private UserService userService;
-    
-    @Autowired
-    private DeptService deptService;
-    
+
     @Autowired
     private PositionService positionService;
-    
-    @Autowired
-    private RoleMapper roleMapper;
-    
-    /**
-     * 加载用户登录信息接口
-     */
-    @RequestMapping("/loadInfo")
-    public UserLineDto loadLoginInfo(HttpSession session) {
-        Object online = session.getAttribute("online");
-        if (online != null) {
-            return (UserLineDto) online;
-        }
-        return null;
+
+    @PostMapping("/page")
+    public Result<PageResult<User>> page(@RequestBody Map<String, Object> params) {
+        int pageNum = (int) params.getOrDefault("pageNum", 1);
+        int pageSize = (int) params.getOrDefault("pageSize", 10);
+        String name = (String) params.get("name"), email = (String) params.get("email");
+        Object s = params.get("status"); String status = s != null ? s.toString() : null;
+        Long deptId = params.get("deptId") != null ? Long.valueOf(params.get("deptId").toString()) : null;
+        return Result.success(userService.findPage(pageNum, pageSize, name, email, status, deptId));
     }
 
-    /**
-     * 加载当前登录用户个人信息（包含部门、职位、角色名称）
-     * @param session HttpSession
-     * @return UserLineDto 对象
-     */
-    @RequestMapping("/showInfo")
-    public UserLineDto showUserInfo(HttpSession session) {
-        Object object = session.getAttribute("online");
-        if (object != null) {
-            UserLineDto dto = (UserLineDto) object;
-            Integer id = dto.getId();
-            
-            // 查询用户基本信息
-            User user = userService.getById(id);
-            if (user == null) {
-                return null;
-            }
-            
-            // 填充基本信息（从数据库重新获取最新数据）
-            dto.setUname(user.getRealname());
-            dto.setSex(user.getSex());
-            dto.setPhone(user.getPhone());
-            dto.setImage(user.getImage());
-            dto.setDeptId(user.getDeptId());
-            dto.setPositionId(user.getPositionId());
-            dto.setAccount(user.getAccount());
-            dto.setEmail(user.getEmail());
-            
-            // 查询部门名称
-            if (user.getDeptId() != null) {
-                Dept dept = deptService.getById(user.getDeptId());
-                if (dept != null) {
-                    dto.setDeptName(dept.getDeptName());
-                } else {
-                    dto.setDeptName("-");
-                }
-            } else {
-                dto.setDeptName("-");
-            }
-            
-            // 查询职位名称
-            if (user.getPositionId() != null) {
-                Position position = positionService.getById(user.getPositionId());
-                if (position != null) {
-                    dto.setPositionName(position.getPositionName());
-                } else {
-                    dto.setPositionName("-");
-                }
-            } else {
-                dto.setPositionName("-");
-            }
-            
-            // 查询角色名称（可能有多个角色，取第一个）
-            List<Role> roles = roleMapper.selectRolesByUserId(id);
-            if (roles != null && !roles.isEmpty()) {
-                // 如果有多个角色，用逗号分隔
-                StringBuilder roleNames = new StringBuilder();
-                for (int i = 0; i < roles.size(); i++) {
-                    if (i > 0) {
-                        roleNames.append(", ");
-                    }
-                    roleNames.append(roles.get(i).getRoleName());
-                }
-                dto.setRoleName(roleNames.toString());
-            } else {
-                dto.setRoleName(""); // 没有角色时返回空字符串
-            }
-            
-            return dto;
-        }
-        return null;
+    @PostMapping("/add") public Result<Void> add(@RequestBody Map<String, Object> params) {
+        User u = new User(); u.setAccount((String)params.get("account")); u.setRealname((String)params.get("realName"));
+        u.setEmail((String)params.get("email")); u.setPhone((String)params.get("phone")); u.setSex((String)params.get("gender"));
+        u.setDeptId(params.get("deptId")!=null?Integer.valueOf(params.get("deptId").toString()):null);
+        u.setPositionId(params.get("positionId")!=null?Integer.valueOf(params.get("positionId").toString()):null);
+        u.setIslock(params.get("status")!=null?Integer.valueOf(params.get("status").toString()):0);
+        Long[] rids = null; if(params.get("roleIds")!=null){ java.util.List<Integer> l=(java.util.List<Integer>)params.get("roleIds"); rids=l.stream().map(Long::valueOf).toArray(Long[]::new); }
+        userService.addUser(u, rids); return Result.success();
     }
+
+    @PostMapping("/update") public Result<Void> update(@RequestBody Map<String, Object> params) {
+        User u = new User(); u.setId(Integer.valueOf(params.get("id").toString()));
+        u.setAccount((String)params.get("account")); u.setRealname((String)params.get("realName"));
+        u.setEmail((String)params.get("email")); u.setPhone((String)params.get("phone")); u.setSex((String)params.get("gender"));
+        u.setDeptId(params.get("deptId")!=null?Integer.valueOf(params.get("deptId").toString()):null);
+        u.setPositionId(params.get("positionId")!=null?Integer.valueOf(params.get("positionId").toString()):null);
+        u.setIslock(params.get("status")!=null?Integer.valueOf(params.get("status").toString()):0);
+        Long[] rids = null; if(params.get("roleIds")!=null){ java.util.List<Integer> l=(java.util.List<Integer>)params.get("roleIds"); rids=l.stream().map(Long::valueOf).toArray(Long[]::new); }
+        userService.updateUser(u, rids); return Result.success();
+    }
+
+    @PostMapping("/updateStatus") public Result<Void> updateStatus(@RequestBody Map<String, Object> params) { userService.updateStatus(Long.valueOf(params.get("id").toString()), params.get("status")!=null?params.get("status").toString():null); return Result.success(); }
+    @PostMapping("/resetPassword") public Result<Void> resetPassword(@RequestBody Map<String, Object> params) { userService.resetPassword(Long.valueOf(params.get("id").toString())); return Result.success(); }
+    @GetMapping("/roleIds/{userId}") public Result<Long[]> getRoleIds(@PathVariable Long userId) { return Result.success(userService.getUserRoleIds(userId)); }
+
 
     /**
      * 更新用户信息
@@ -187,16 +135,16 @@ public class UserController {
         try {
             Integer pageNum = (Integer) params.getOrDefault("pageNum", 1);
             Integer pageSize = (Integer) params.getOrDefault("pageSize", 100);
-            
+
             // 查询职位名称包含"护理"的position ID列表
             List<Position> positions = positionService.list().stream()
                 .filter(p -> p.getPositionName() != null && p.getPositionName().contains("护理"))
                 .collect(Collectors.toList());
-            
+
             List<Integer> nursePositionIds = positions.stream()
                 .map(Position::getId)
                 .collect(Collectors.toList());
-            
+
             QueryWrapper<User> wrapper = new QueryWrapper<>();
             if (!nursePositionIds.isEmpty()) {
                 wrapper.in("position_id", nursePositionIds);
@@ -207,10 +155,10 @@ public class UserController {
                 result.put("total", 0);
                 return result;
             }
-            
+
             Page<User> page = new Page<>(pageNum, pageSize);
             IPage<User> iPage = userService.page(page, wrapper);
-            
+
             result.put("code", 200);
             result.put("users", iPage.getRecords());
             result.put("total", iPage.getTotal());
@@ -227,7 +175,7 @@ public class UserController {
     @GetMapping("/user/detail")
     public Map<String, Object> userDetail(@RequestParam Integer id) {
         Map<String, Object> result = new HashMap<>();
-        
+
         try {
             User user = userService.getById(id);
             if (user == null) {
@@ -235,7 +183,7 @@ public class UserController {
                 result.put("msg", "用户不存在");
                 return result;
             }
-            
+
             result.put("code", 200);
             result.put("msg", "查询成功");
             result.put("user", user);
@@ -244,7 +192,7 @@ public class UserController {
             result.put("msg", "查询失败：" + e.getMessage());
             e.printStackTrace();
         }
-        
+
         return result;
     }
 }

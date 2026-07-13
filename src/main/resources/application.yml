@@ -1,0 +1,50 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/zzyl?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
+      file-size-threshold: 0
+  ai:
+    dashscope:
+      api-key: sk-ws-H.EMYDDMY.OshO.MEUCIQDvKRSiuMrWzINwQvVwwMADfPvGv0hWBTtVMgO9eg4XrQIgSpnYsC8gSZryT-Wwt1dpCAICwIGqD-uknKhTyYiJGKA
+      chat:
+        options:
+          model: qwen3.7-max
+      base-url: https://ws-pf5gg0mdm8mjd55q.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.soft.pojo
+
+aliyun:
+  oss:
+    enabled: false
+    endpoint: https://oss-cn-beijing.aliyuncs.com
+    bucketName: zzyl-oss-zj
+    region: cn-beijing
+
+upload:
+  local-dir: D:/zzyl-uploads
+  url-prefix: http://localhost:8080/uploads

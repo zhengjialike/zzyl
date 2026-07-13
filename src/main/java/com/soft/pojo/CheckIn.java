@@ -13,10 +13,17 @@ import java.time.LocalDateTime;
 
 @TableName(value = "t_check_in")
 @Data
+/**
+ * 入住业务单实体，对应从申请、评估、审批、配置到签约的完整五步流程。
+ * 多选项和明细项使用 JSON 字符串保存；页面加载时再反序列化为数组。
+ */
 public class CheckIn {
+    // ---------- 单据和老人基本资料 ----------
     @TableId(type = IdType.AUTO)
     private Integer id;
+    /** 入住单号，格式为 RZ + 时间戳 + 随机数。 */
     private String billNo;
+    /** 关联 t_elderly；老人档案是入住、退住之间的业务主线。 */
     private Integer elderId;
     private String elderName;
     private String idCard;
@@ -38,7 +45,11 @@ public class CheckIn {
     private String photo;
     private String idCardFront;
     private String idCardBack;
+
+    // ---------- 健康评估和能力评估 ----------
+    /** 已诊断疾病 JSON 数组。 */
     private String diseases;
+    /** 用药名称、方式和剂量组成的 JSON 数组。 */
     private String medications;
     private String riskFalls;
     private String riskLost;
@@ -50,13 +61,17 @@ public class CheckIn {
     private String abilitySelf;
     private String behaviorIssues;
     private String medicalReport;
+    /** 完整评估答案/汇总 JSON，用于恢复评估表。 */
     private String evalScores;
+    /** 独立分数字段用于列表、报表和统计，避免每次解析 evalScores。 */
     private Integer evalTotalScore;
     private Integer evalSelfScore;
     private Integer evalMentalScore;
     private Integer evalPerceptionScore;
     private String evalLevel;
     private String levelChangeReason;
+
+    // ---------- 审批、入住配置和费用 ----------
     private String approveResult;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
@@ -72,12 +87,16 @@ public class CheckIn {
     private BigDecimal otherFee;
     private BigDecimal insurancePay;
     private BigDecimal govSubsidy;
+
+    // ---------- 签约资料 ----------
     private String contractName;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate signDate;
     private String partyCName;
     private String partyCPhone;
     private String contractFile;
+
+    // ---------- 流程状态和审计信息 ----------
     private String bedNo;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate checkInDate;

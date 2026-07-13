@@ -35,11 +35,21 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
+/**
+ * 入住五步流程业务实现。
+ *
+ * <p>流程顺序固定为：申请入住 → 入住评估 → 入住审批 → 入住配置 → 签约办理。
+ * currentStep 表示下一次允许提交的步骤，flowStatus 表示整张单据是否仍可办理。
+ * 涉及老人、家属、床位、合同和日志的写操作使用事务保证一致性。</p>
+ */
 public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> implements CheckInService {
 
+    // 三组数组下标与步骤号 - 1 对应，用于统一生成可读的流程日志。
     private static final String[] STEP_NAMES = {"申请入住", "入住评估", "入住审批", "入住配置", "签约办理"};
     private static final String[] STEP_ROLES = {"发起人", "评估人", "审批人", "配置人", "发起人"};
     private static final String[] STEP_OPS = {"已发起", "已处理", "已审批", "已配置", "已签约"};
+    private static final List<String> NURSING_LEVELS =
+            List.of("一级护理", "二级护理", "三级护理", "四级护理");
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Autowired private CheckInMapper checkInMapper;
@@ -49,6 +59,10 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     @Autowired private ElderlyService elderlyService;
     @Autowired private BedMapper bedMapper;
 
+    /**
+     * 把前端多选项/明细对象序列化为 JSON 保存。
+     * 已经是字符串时直接返回，兼容历史调用方已经完成序列化的情况。
+     */
     private static String toJson(Object value) {
         if (value == null) return null;
         if (value instanceof String text) return text;
@@ -59,6 +73,27 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         }
     }
 
+    /**
+     * 将历史字母等级转换为当前统一的数字等级。
+     * 原四档顺序为 A特级、A级、B级、C级，对应一级至四级护理。
+     */
+    private static String normalizeNursingLevel(String nursingLevel) {
+        if (!StringUtils.hasText(nursingLevel)) return nursingLevel;
+        return switch (nursingLevel.trim()) {
+            case "A特级", "A特级护理", "特级护理等级" -> "一级护理";
+            case "A级", "A级护理" -> "二级护理";
+            case "B级", "B级护理" -> "三级护理";
+            case "C级", "C级护理", "D级", "D级护理" -> "四级护理";
+            default -> nursingLevel.trim();
+        };
+    }
+
+    /**
+     * 将步骤 DTO 中非 null 字段复制到入住单。
+     *
+     * <p>这里不使用 BeanUtils 全量覆盖：分步表单每次只提交一部分字段，若复制 null 会把前面步骤的数据清空；
+     * 同时页面字段名与实体字段名并不完全相同，多选字段还需要 JSON 序列化。</p>
+     */
     private void copyWithSerialize(StepSubmitDto dto, CheckIn target) {
         if (dto.getElderName() != null) target.setElderName(dto.getElderName());
         if (dto.getIdCard() != null) target.setIdCard(dto.getIdCard());
@@ -99,7 +134,9 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         if (dto.getEvalLevel() != null) target.setEvalLevel(dto.getEvalLevel());
         if (dto.getLevelChangeReason() != null) target.setLevelChangeReason(toJson(dto.getLevelChangeReason()));
         if (dto.getBedNo() != null) target.setBedNo(dto.getBedNo());
-        if (dto.getNursingLevel() != null) target.setNursingLevel(dto.getNursingLevel());
+        if (dto.getNursingLevel() != null) {
+            target.setNursingLevel(normalizeNursingLevel(dto.getNursingLevel()));
+        }
         if (dto.getAdvisor() != null) target.setAdvisor(dto.getAdvisor());
         if (dto.getStartDate() != null) target.setStartDate(dto.getStartDate());
         if (dto.getEndDate() != null) target.setEndDate(dto.getEndDate());
@@ -120,6 +157,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     }
 
     @Override
+    /** 列表条件按需拼接，未填写的条件不进入 SQL；默认按创建时间倒序。 */
     public Map<String, Object> pageList(CheckInPageDto dto) {
         Page<CheckIn> page = new Page<>(dto.getPageNum(), dto.getPageSize());
         QueryWrapper<CheckIn> wrapper = new QueryWrapper<>();
@@ -131,6 +169,8 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         }
         wrapper.orderByDesc("create_time");
         Page<CheckIn> resultPage = checkInMapper.selectPage(page, wrapper);
+        resultPage.getRecords().forEach(item ->
+                item.setNursingLevel(normalizeNursingLevel(item.getNursingLevel())));
         Map<String, Object> result = new HashMap<>();
         result.put("list", resultPage.getRecords());
         result.put("total", resultPage.getTotal());
@@ -139,6 +179,12 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
 
     @Override
     @Transactional
+    /**
+     * 完成第一步申请入住。
+     *
+     * <p>先按身份证号复用或创建老人档案，再创建入住单和家属记录。此时老人仍不是“在住”，
+     * 只有第五步签约完成后才改为在住，避免办理中申请污染在住老人列表。</p>
+     */
     public Map<String, Object> startApply(StepSubmitDto dto, String applicant) {
         Map<String, Object> result = new HashMap<>();
 
@@ -156,7 +202,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
             result.put("code", 400); result.put("msg", "请上传一寸照片和身份证正反面"); return result;
         }
 
-        // 1. 按身份证号查 t_elderly,不存在才新增
+        // 1. 身份证号是老人档案的业务唯一标识：不存在则新增，已存在则同步本次填写的最新资料。
         Elderly elderly = elderlyService.queryByIdCard(dto.getIdCard());
         if (elderly != null && Integer.valueOf(1).equals(elderly.getStatus())) {
             result.put("code", 400); result.put("msg", "该老人已入住，请重新输入"); return result;
@@ -182,7 +228,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
             elderlyService.updateById(elderly);
         }
 
-        // 2. 创建入住申请,回填 elder_id
+        // 2. 创建入住申请并回填 elder_id；第一步已完成，所以 currentStep 从 2 开始。
         CheckIn checkIn = new CheckIn();
         copyWithSerialize(dto, checkIn);
         checkIn.setElderId(elderly.getId());
@@ -205,6 +251,10 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
 
     @Override
     @Transactional
+    /**
+     * 提交入住第 2～5 步。
+     * 每次先核对 flowStatus/currentStep，既防止前端越级，也避免双击或旧页面重复提交。
+     */
     public Map<String, Object> submitStep(StepSubmitDto dto, String operator) {
         Map<String, Object> result = new HashMap<>();
         result.put("code", 400);
@@ -219,9 +269,11 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         String operation = STEP_OPS[step - 1];
         switch (step) {
             case 2: // 入住评估 (健康+能力+报告)
+                // 保存健康资料、能力评估答案、各维度分数和最终护理等级建议。
                 copyWithSerialize(dto, checkIn);
                 break;
             case 3: // 入住审批
+                // 驳回直接关闭整张入住单；通过后才允许进入床位和费用配置。
                 if (!"通过".equals(dto.getApproveResult()) && !"驳回".equals(dto.getApproveResult())) {
                     result.put("msg", "请选择审批结果"); return result;
                 }
@@ -239,6 +291,12 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
                         || dto.getFeeStartDate() == null || dto.getFeeEndDate() == null) {
                     result.put("msg", "请完整填写入住配置和费用期限"); return result;
                 }
+                dto.setNursingLevel(normalizeNursingLevel(dto.getNursingLevel()));
+                if (!NURSING_LEVELS.contains(dto.getNursingLevel())) {
+                    result.put("msg", "护理等级必须为一级护理、二级护理、三级护理或四级护理");
+                    return result;
+                }
+                // 床位占用和预生成合同与入住单更新处于同一事务，任一步失败都会整体回滚。
                 bindBed(checkIn, dto.getBedNo());
                 copyWithSerialize(dto, checkIn);
                 prepareContract(checkIn, operator);
@@ -251,6 +309,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
                 copyWithSerialize(dto, checkIn);
                 checkIn.setFinishTime(LocalDateTime.now());
                 checkIn.setFlowStatus("已完成");
+                // 签约完成后去除“待完成”标记，合同才进入合同管理列表。
                 finishContract(checkIn, operator);
                 // 老人状态改为在住
                 if (checkIn.getElderId() != null) {
@@ -281,6 +340,10 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         return result;
     }
 
+    /**
+     * 在入住配置完成时预生成合同编号，便于签约页面提前展示。
+     * 重复提交配置步骤时按 check_in_id 更新同一份合同，不重复插入。
+     */
     private void prepareContract(CheckIn checkIn, String creator) {
         QueryWrapper<Contract> wrapper = new QueryWrapper<>();
         wrapper.eq("check_in_id", checkIn.getId()).last("LIMIT 1");
@@ -303,19 +366,26 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         if (contract.getId() == null) contractMapper.insert(contract); else contractMapper.updateById(contract);
     }
 
+    /** 将预生成合同补齐签约资料并移除待完成标记。 */
     private void finishContract(CheckIn checkIn, String creator) {
         prepareContract(checkIn, creator);
         QueryWrapper<Contract> wrapper = new QueryWrapper<>();
         wrapper.eq("check_in_id", checkIn.getId()).last("LIMIT 1");
         Contract contract = contractMapper.selectOne(wrapper);
         if (contract != null) {
-            contract.setContractName(checkIn.getContractName());
-            contract.setCreator(creator);
-            contract.setRemark(null);
-            contractMapper.updateById(contract);
+            UpdateWrapper<Contract> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", contract.getId())
+                    .set("contract_name", checkIn.getContractName())
+                    .set("creator", creator)
+                    .set("remark", null);
+            contractMapper.update(null, updateWrapper);
         }
     }
 
+    /**
+     * 绑定床位前再次从数据库检查占用情况，并释放同一老人之前绑定的其他床位。
+     * 该校验不能只放在前端，因为打开选择框后床位仍可能被其他请求占用。
+     */
     private void bindBed(CheckIn checkIn, String bedNo) {
         QueryWrapper<Bed> wrapper = new QueryWrapper<>();
         wrapper.eq("bed_number", bedNo).last("LIMIT 1");
@@ -328,7 +398,9 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         oldWrapper.eq("elderly_id", checkIn.getElderId());
         for (Bed old : bedMapper.selectList(oldWrapper)) {
             if (!old.getId().equals(selected.getId())) {
-                old.setElderlyId(null); old.setStatus(0); bedMapper.updateById(old);
+                old.setElderlyId(null);
+                old.setStatus(0);
+                bedMapper.updateById(old);
             }
         }
         selected.setElderlyId(checkIn.getElderId());
@@ -337,6 +409,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     }
 
     @Override
+    /** 返回未绑定老人或明确标记为空闲的床位，并按床位号排序。 */
     public List<Bed> queryAvailableBeds() {
         QueryWrapper<Bed> wrapper = new QueryWrapper<>();
         wrapper.and(item -> item.isNull("elderly_id").or().eq("status", 0)).orderByAsc("bed_number");
@@ -344,9 +417,11 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     }
 
     @Override
+    /** 查询主表后从合同表补充 contractNo；该字段不是 t_check_in 的物理列。 */
     public CheckIn queryDetail(Integer id) {
         CheckIn detail = checkInMapper.selectById(id);
         if (detail == null) return null;
+        detail.setNursingLevel(normalizeNursingLevel(detail.getNursingLevel()));
         QueryWrapper<Contract> wrapper = new QueryWrapper<>();
         wrapper.eq("check_in_id", id).last("LIMIT 1");
         Contract contract = contractMapper.selectOne(wrapper);
@@ -355,6 +430,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     }
 
     @Override
+    /** 单据不存在时返回空集合，避免详情页日志请求出现 500。 */
     public List<ApplyLog> queryLogs(Integer id) {
         CheckIn ci = checkInMapper.selectById(id);
         if (ci == null) return List.of();
@@ -363,6 +439,10 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
 
     @Override
     @Transactional
+    /**
+     * 撤销仍在申请中的入住单。
+     * 已经配置过的床位需要显式设为 NULL，预生成合同也要删除，但老人档案保留供后续重新申请。
+     */
     public Map<String, Object> revoke(Integer id, String operator) {
         Map<String, Object> result = new HashMap<>();
         CheckIn ci = checkInMapper.selectById(id);
@@ -391,10 +471,12 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
         return result;
     }
 
+    /** 生成带业务前缀的低碰撞单号；数据库主键仍是最终唯一标识。 */
     private String generateBillNo(String prefix) {
         return prefix + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ThreadLocalRandom.current().nextInt(1000, 9999);
     }
 
+    /** 根据合同期限推导日期型状态；业务型“已失效”由退住流程维护。 */
     private String judgeStatus(LocalDate start, LocalDate end) {
         if (start == null || end == null) return "未生效";
         LocalDate now = LocalDate.now();
