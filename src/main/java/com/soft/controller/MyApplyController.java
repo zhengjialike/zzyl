@@ -24,10 +24,7 @@ public class MyApplyController {
     }
 
     private String currentUserName(HttpSession session) {
-        Object online = session.getAttribute("online");
-        if (online instanceof UserLineDto dto) {
-            return dto.getUname();
-        }
-        return "未知";
+        Object realName = session.getAttribute("realName");
+        return realName != null ? realName.toString() : "未知";
     }
 }
