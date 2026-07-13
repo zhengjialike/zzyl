@@ -10,6 +10,7 @@ import com.soft.mapper.CheckInMapper;
 import com.soft.mapper.ContractMapper;
 import com.soft.mapper.BedMapper;
 import com.soft.pojo.*;
+import com.zzyl.service.BillService;
 import com.soft.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

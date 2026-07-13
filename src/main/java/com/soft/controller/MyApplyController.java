@@ -26,10 +26,7 @@ public class MyApplyController {
     }
 
     private String currentUserName(HttpSession session) {
-        Object online = session.getAttribute("online");
-        if (online instanceof UserLineDto dto) {
-            return dto.getUname();
-        }
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "登录状态已失效，请重新登录");
+        Object realName = session.getAttribute("realName");
+        return realName != null ? realName.toString() : "未知";
     }
 }
