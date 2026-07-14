@@ -109,12 +109,12 @@ public class SmartBedMonitorController {
 
         try {
             List<Bed> beds = bedService.list();
+            List<Device> allDevices = deviceService.list();
             List<Map<String, Object>> bedsWithDevices = new ArrayList<>();
 
             for (Bed bed : beds) {
                 if (bed.getRoomId().equals(roomId)) {
-                    // 检查床位是否绑定了设备
-                    List<Device> devices = getBedDeviceList(bed.getId());
+                    List<Device> devices = getBedDeviceList(bed.getId(), allDevices);
 
                     if (!devices.isEmpty()) {
                         Map<String, Object> bedMap = new HashMap<>();
@@ -122,7 +122,6 @@ public class SmartBedMonitorController {
                         bedMap.put("bedNumber", bed.getBedNumber());
                         bedMap.put("elderlyId", bed.getElderlyId());
 
-                        // 获取老人姓名
                         if (bed.getElderlyId() != null) {
                             Elderly elderly = elderlyService.getById(bed.getElderlyId());
                             bedMap.put("elderlyName", elderly != null ? elderly.getRealName() : "-");
@@ -178,12 +177,17 @@ public class SmartBedMonitorController {
      */
     private boolean hasDevicesInRoom(Integer roomId) {
         List<Bed> beds = bedService.list();
+        List<Device> allDevices = deviceService.list();
         for (Bed bed : beds) {
-            if (bed.getRoomId().equals(roomId) && hasDevicesForLocation(3, bed.getId())) {
-                return true;
+            if (bed.getRoomId().equals(roomId)) {
+                if (hasDevicesForLocation(3, bed.getId())) {
+                    return true;
+                }
+                if (bed.getElderlyId() != null && hasDevicesForLocation(3, bed.getElderlyId())) {
+                    return true;
+                }
             }
         }
-        // 检查房间级别的设备
         return hasDevicesForLocation(1, roomId);
     }
 
@@ -217,9 +221,46 @@ public class SmartBedMonitorController {
      */
     private List<Device> getBedDeviceList(Integer bedId) {
         List<Device> devices = deviceService.list();
-        return devices.stream()
+        List<Device> bedDevices = devices.stream()
             .filter(device -> device.getLocationType() == 3 && device.getLocationId().equals(bedId))
             .collect(Collectors.toList());
+
+        Bed bed = bedService.getById(bedId);
+        if (bed != null && bed.getElderlyId() != null) {
+            List<Device> elderlyDevices = devices.stream()
+                .filter(device -> device.getLocationType() == 3 && device.getLocationId().equals(bed.getElderlyId()))
+                .collect(Collectors.toList());
+            for (Device d : elderlyDevices) {
+                if (bedDevices.stream().noneMatch(bd -> bd.getId().equals(d.getId()))) {
+                    bedDevices.add(d);
+                }
+            }
+        }
+
+        return bedDevices;
+    }
+
+    /**
+     * 获取床位的设备列表
+     */
+    private List<Device> getBedDeviceList(Integer bedId, List<Device> allDevices) {
+        List<Device> bedDevices = allDevices.stream()
+            .filter(device -> device.getLocationType() == 3 && device.getLocationId().equals(bedId))
+            .collect(Collectors.toList());
+
+        Bed bed = bedService.getById(bedId);
+        if (bed != null && bed.getElderlyId() != null) {
+            List<Device> elderlyDevices = allDevices.stream()
+                .filter(device -> device.getLocationType() == 3 && device.getLocationId().equals(bed.getElderlyId()))
+                .collect(Collectors.toList());
+            for (Device d : elderlyDevices) {
+                if (bedDevices.stream().noneMatch(bd -> bd.getId().equals(d.getId()))) {
+                    bedDevices.add(d);
+                }
+            }
+        }
+
+        return bedDevices;
     }
 
     /**
